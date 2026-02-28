@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: x-novel-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: x_novel
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - x-novel-network
+
+  # 后端服务
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: x-novel-server
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: x_novel
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - x-novel-network
+
+  # 前端应用
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: x-novel-web
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    networks:
+      - x-novel-network
+
+volumes:
+  postgres_data:
+
+networks:
+  x-novel-network:
+    driver: bridge

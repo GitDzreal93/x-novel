@@ -1,0 +1,29 @@
+server:
+  port: 8888
+  mode: debug  # debug, release
+  host: 0.0.0.0
+
+database:
+  host: localhost
+  port: 5432
+  user: admin
+  password: "Postgres@2026"
+  dbname: x_novel
+  sslmode: disable
+
+logger:
+  level: info  # debug, info, warn, error
+  format: console  # json, console
+
+llm:
+  default_provider: openai
+  providers:
+    openai:
+      base_url: https://api.openai.com/v1
+      api_key: "${OPENAI_API_KEY}"
+    anthropic:
+      base_url: https://api.anthropic.com/v1
+      api_key: "${ANTHROPIC_API_KEY}"
+    deepseek:
+      base_url: https://api.deepseek.com/v1
+      api_key: "${DEEPSEEK_API_KEY}"
