@@ -109,6 +109,16 @@ func (r *ChapterRepository) ListCompleted(ctx context.Context, projectID string,
 	return chapters, err
 }
 
+// ListByProject 获取项目的所有章节（不分页）
+func (r *ChapterRepository) ListByProject(ctx context.Context, projectID string) ([]*model.Chapter, error) {
+	var chapters []*model.Chapter
+	err := r.db.WithContext(ctx).
+		Where("project_id = ?", projectID).
+		Order("chapter_number ASC").
+		Find(&chapters).Error
+	return chapters, err
+}
+
 // CountCompleted 统计已完成章节数
 func (r *ChapterRepository) CountCompleted(ctx context.Context, projectID string) (int64, error) {
 	var count int64

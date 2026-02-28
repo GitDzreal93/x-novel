@@ -22,6 +22,7 @@ type ProjectService struct {
 	chapterRepo  *repository.ChapterRepository
 	modelRepo    *repository.ModelConfigRepository
 	llmManager   *llm.Manager
+	exportService *ExportService
 }
 
 // NewProjectService 创建项目服务
@@ -30,12 +31,14 @@ func NewProjectService(
 	chapterRepo *repository.ChapterRepository,
 	modelRepo *repository.ModelConfigRepository,
 	llmManager *llm.Manager,
+	exportService *ExportService,
 ) *ProjectService {
 	return &ProjectService{
-		projectRepo: projectRepo,
-		chapterRepo: chapterRepo,
-		modelRepo:   modelRepo,
-		llmManager:  llmManager,
+		projectRepo:  projectRepo,
+		chapterRepo:  chapterRepo,
+		modelRepo:    modelRepo,
+		llmManager:   llmManager,
+		exportService: exportService,
 	}
 }
 
@@ -528,14 +531,5 @@ func (s *ProjectService) generateMockBlueprint(ctx context.Context, project *mod
 
 // ExportProject 导出项目
 func (s *ProjectService) ExportProject(ctx context.Context, projectID, format string) (string, error) {
-	project, err := s.projectRepo.GetByID(ctx, projectID)
-	if err != nil {
-		return "", err
-	}
-
-	// TODO: 实现导出逻辑
-	_ = project
-	_ = format
-
-	return "", errors.New("导出功能待实现")
+	return s.exportService.ExportProject(ctx, projectID, ExportFormat(format))
 }
