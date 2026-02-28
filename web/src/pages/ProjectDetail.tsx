@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Tabs, Button, Card, Spin } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { Tabs, Button, Card, Spin, Space, Dropdown, message } from 'antd';
+import { ArrowLeftOutlined, DownloadOutlined, FileTextOutlined, MarkdownOutlined } from '@ant-design/icons';
 import { projectApi } from '../api';
 import { useQuery } from '@tanstack/react-query';
 import ArchitecturePanel from '../components/project/ArchitecturePanel';
@@ -21,6 +21,46 @@ function ProjectDetail() {
   });
 
   const project = projectRes;
+
+  // 导出处理
+  const handleExport = async (format: 'txt' | 'md') => {
+    try {
+      const res = await projectApi.export(id!, format);
+      const content = res.data.data.download_url;
+
+      // 创建 Blob 并下载
+      const blob = new Blob([content], {
+        type: format === 'txt' ? 'text/plain' : 'text/markdown'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${project?.title || 'novel'}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      message.success(`${format === 'txt' ? 'TXT' : 'Markdown'} 导出成功`);
+    } catch (error) {
+      message.error('导出失败');
+    }
+  };
+
+  const exportMenuItems = [
+    {
+      key: 'txt',
+      label: '导出为 TXT',
+      icon: <FileTextOutlined />,
+      onClick: () => handleExport('txt'),
+    },
+    {
+      key: 'md',
+      label: '导出为 Markdown',
+      icon: <MarkdownOutlined />,
+      onClick: () => handleExport('md'),
+    },
+  ];
 
   if (isLoading) {
     return (
@@ -61,19 +101,28 @@ function ProjectDetail() {
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-6">
-        <Button
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate('/projects')}
-        >
-          返回
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">{project.title}</h1>
-          {project.topic && (
-            <p className="text-gray-500 text-sm mt-1">{project.topic}</p>
-          )}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate('/projects')}
+          >
+            返回
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">{project.title}</h1>
+            {project.topic && (
+              <p className="text-gray-500 text-sm mt-1">{project.topic}</p>
+            )}
+          </div>
         </div>
+        <Space>
+          <Dropdown menu={{ items: exportMenuItems }} placement="bottomRight">
+            <Button icon={<DownloadOutlined />} loading={isLoading}>
+              导出
+            </Button>
+          </Dropdown>
+        </Space>
       </div>
 
       <Card>
