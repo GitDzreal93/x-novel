@@ -9,11 +9,11 @@ import (
 
 // Project 项目模型
 type Project struct {
-	ID        uuid.UUID   `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	DeviceID  uuid.UUID   `gorm:"type:uuid;not null;index" json:"device_id"`
-	Title     string     `gorm:"size:200;not null" json:"title"`
-	Topic     string     `gorm:"type:text" json:"topic,omitempty"`
-	Genre     []string   `gorm:"type:text[]" json:"genre,omitempty"`
+	ID        uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	DeviceID  uuid.UUID `gorm:"type:uuid;not null;index" json:"device_id"`
+	Title     string    `gorm:"size:200;not null" json:"title"`
+	Topic     string    `gorm:"type:text" json:"topic,omitempty"`
+	Genre     string    `gorm:"type:text" json:"genre,omitempty"` // 存储 JSON 字符串
 	ChapterCount     int       `gorm:"default:100" json:"chapter_count"`
 	WordsPerChapter  int       `gorm:"default:3000" json:"words_per_chapter"`
 	UserGuidance     string    `gorm:"type:text" json:"user_guidance,omitempty"`
@@ -34,7 +34,7 @@ type Project struct {
 	GlobalSummary string `gorm:"type:text" json:"global_summary,omitempty"`
 
 	// 关系图谱数据
-	GraphData     string `gorm:"type:jsonb" json:"graph_data,omitempty"`
+	GraphData     string `gorm:"type:text" json:"graph_data,omitempty"` // 存储 JSON 字符串
 
 	// 状态
 	Status     string    `gorm:"size:20;default:draft" json:"status"` // draft, writing, completed, published
@@ -82,10 +82,10 @@ type Chapter struct {
 	IsFinalized bool   `gorm:"default:false" json:"is_finalized"`
 
 	// 分析数据
-	Analysis     string `gorm:"type:jsonb" json:"analysis,omitempty"`
+	Analysis     string `gorm:"type:text" json:"analysis,omitempty"` // 存储 JSON 字符串
 
 	// 关系图谱
-	ChapterGraph string `gorm:"type:jsonb" json:"chapter_graph,omitempty"`
+	ChapterGraph string `gorm:"type:text" json:"chapter_graph,omitempty"` // 存储 JSON 字符串
 
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 
 	"x-novel/internal/dto"
@@ -39,11 +40,18 @@ func NewProjectService(
 
 // Create 创建项目
 func (s *ProjectService) Create(ctx context.Context, deviceID uuid.UUID, req *dto.CreateProjectRequest) (*model.Project, error) {
+	// 将 Genre 数组转换为 JSON 字符串
+	genreJSON, err := json.Marshal(req.Genre)
+	if err != nil {
+		logger.Error("序列化 Genre 失败", zap.Error(err))
+		return nil, err
+	}
+
 	project := &model.Project{
 		DeviceID:         deviceID,
 		Title:            req.Title,
 		Topic:            req.Topic,
-		Genre:            req.Genre,
+		Genre:            string(genreJSON),
 		ChapterCount:     req.ChapterCount,
 		WordsPerChapter:  req.WordsPerChapter,
 		UserGuidance:     req.UserGuidance,
@@ -108,7 +116,12 @@ func (s *ProjectService) Update(ctx context.Context, id string, req *dto.UpdateP
 		project.Topic = *req.Topic
 	}
 	if req.Genre != nil {
-		project.Genre = req.Genre
+		genreJSON, err := json.Marshal(req.Genre)
+		if err != nil {
+			logger.Error("序列化 Genre 失败", zap.Error(err))
+			return nil, err
+		}
+		project.Genre = string(genreJSON)
 	}
 	if req.ChapterCount != nil {
 		project.ChapterCount = *req.ChapterCount

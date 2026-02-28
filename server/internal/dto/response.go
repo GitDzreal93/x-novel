@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"encoding/json"
 	"time"
 
 	"x-novel/internal/model"
@@ -195,11 +196,17 @@ func FromModel(p *model.Project) *ProjectResponse {
 		totalWords += ch.WordCount
 	}
 
+	// 反序列化 Genre JSON 字符串
+	var genre []string
+	if p.Genre != "" {
+		json.Unmarshal([]byte(p.Genre), &genre)
+	}
+
 	return &ProjectResponse{
 		ID:                   p.ID,
 		Title:                p.Title,
 		Topic:                p.Topic,
-		Genre:                p.Genre,
+		Genre:                genre,
 		ChapterCount:         p.ChapterCount,
 		WordsPerChapter:      p.WordsPerChapter,
 		UserGuidance:         p.UserGuidance,

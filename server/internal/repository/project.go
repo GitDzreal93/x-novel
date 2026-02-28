@@ -26,7 +26,6 @@ func (r *ProjectRepository) Create(ctx context.Context, project *model.Project) 
 func (r *ProjectRepository) GetByID(ctx context.Context, id string) (*model.Project, error) {
 	var project model.Project
 	err := r.db.WithContext(ctx).
-		Preload("Chapters").
 		Where("id = ?", id).
 		First(&project).Error
 	if err != nil {
