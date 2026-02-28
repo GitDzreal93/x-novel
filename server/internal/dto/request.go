@@ -78,7 +78,7 @@ type UpdateChapterRequest struct {
 
 // GenerateChapterRequest 生成章节请求
 type GenerateChapterRequest struct {
-	ChapterNumber int    `json:"chapter_number" binding:"required"`
+	ChapterNumber int    `json:"chapter_number"` // 从 URL 路径设置，非必填
 	Overwrite     bool   `json:"overwrite"` // 是否覆盖已有内容
 }
 

@@ -83,7 +83,7 @@ func main() {
 	// 初始化服务
 	deviceService := service.NewDeviceService(deviceRepo)
 	projectService := service.NewProjectService(projectRepo, chapterRepo, modelConfigRepo, llmManager)
-	chapterService := service.NewChapterService(projectRepo, chapterRepo)
+	chapterService := service.NewChapterService(projectRepo, chapterRepo, modelConfigRepo, llmManager)
 
 	// 初始化处理器
 	deviceHandler := handler.NewDeviceHandler(deviceService)

@@ -246,7 +246,7 @@ func (h *ChapterHandler) GenerateContent(c *gin.Context) {
 	}
 
 	req.ChapterNumber = chapterNumber
-	updatedChapter, err := h.chapterService.GenerateChapterContent(c.Request.Context(), deviceUUID.String(), chapter.ID.String(), &req)
+	updatedChapter, err := h.chapterService.GenerateChapterContent(c.Request.Context(), deviceUUID, projectID, chapter.ID.String(), &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Code:    http.StatusInternalServerError,
@@ -276,6 +276,15 @@ func (h *ChapterHandler) GenerateContent(c *gin.Context) {
 // @Success 200 {object} dto.Response{data=dto.ChapterResponse}
 // @Router /api/v1/projects/{id}/chapters/{chapterNumber}/finalize [post]
 func (h *ChapterHandler) Finalize(c *gin.Context) {
+	deviceUUID, err := middleware.GetDeviceUUID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Code:    http.StatusUnauthorized,
+			Message: "未授权",
+		})
+		return
+	}
+
 	projectID := c.Param("id")
 	chapterNumber, _ := strconv.Atoi(c.Param("chapterNumber"))
 
@@ -298,7 +307,7 @@ func (h *ChapterHandler) Finalize(c *gin.Context) {
 		return
 	}
 
-	updatedChapter, err := h.chapterService.FinalizeChapter(c.Request.Context(), projectID, chapter.ID.String(), &req)
+	updatedChapter, err := h.chapterService.FinalizeChapter(c.Request.Context(), deviceUUID, projectID, chapter.ID.String(), &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Code:    http.StatusInternalServerError,
@@ -328,6 +337,15 @@ func (h *ChapterHandler) Finalize(c *gin.Context) {
 // @Success 200 {object} dto.Response{data=dto.ChapterResponse}
 // @Router /api/v1/projects/{id}/chapters/{chapterNumber}/enrich [post]
 func (h *ChapterHandler) Enrich(c *gin.Context) {
+	deviceUUID, err := middleware.GetDeviceUUID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Code:    http.StatusUnauthorized,
+			Message: "未授权",
+		})
+		return
+	}
+
 	projectID := c.Param("id")
 	chapterNumber, _ := strconv.Atoi(c.Param("chapterNumber"))
 
@@ -350,7 +368,7 @@ func (h *ChapterHandler) Enrich(c *gin.Context) {
 		return
 	}
 
-	updatedChapter, err := h.chapterService.EnrichChapter(c.Request.Context(), projectID, chapter.ID.String(), &req)
+	updatedChapter, err := h.chapterService.EnrichChapter(c.Request.Context(), deviceUUID, projectID, chapter.ID.String(), &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Code:    http.StatusInternalServerError,
