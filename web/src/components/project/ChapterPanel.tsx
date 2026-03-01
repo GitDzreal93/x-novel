@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Card, List, Tag, message, Modal, InputNumber, Spin, Space, Input, Form, Divider, Alert } from 'antd';
+import { Button, Card, List, Tag, Modal, InputNumber, Spin, Space, Input, Form, Divider, Alert, App } from 'antd';
 import { PlayCircleOutlined, CheckOutlined, PlusOutlined, EditOutlined, SaveOutlined, ExpandOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { chapterApi } from '../../api';
@@ -13,6 +13,7 @@ interface ChapterPanelProps {
 }
 
 function ChapterPanel({ project }: ChapterPanelProps) {
+  const { message } = App.useApp();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);

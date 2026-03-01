@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, Button, Empty, message, Modal, Form, Input, InputNumber, Select } from 'antd';
+import { Card, Button, Empty, Modal, Form, Input, InputNumber, Select, App } from 'antd';
 import { PlusOutlined, BookOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { projectApi } from '../api';
@@ -7,6 +7,7 @@ import type { CreateProjectRequest } from '../types';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 function ProjectList() {
+  const { message } = App.useApp();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [page] = useState(1);

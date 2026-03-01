@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Form, Input, message, Modal, Space, Collapse } from 'antd';
+import { Button, Form, Input, Modal, Space, Collapse, App } from 'antd';
 import { PlayCircleOutlined, SaveOutlined } from '@ant-design/icons';
 import { projectApi } from '../../api';
 import type { Project } from '../../types';
@@ -12,6 +12,7 @@ interface ArchitecturePanelProps {
 }
 
 function ArchitecturePanel({ project }: ArchitecturePanelProps) {
+  const { message } = App.useApp();
   const queryClient = useQueryClient();
   const [form] = Form.useForm();
   const [generating, setGenerating] = useState(false);

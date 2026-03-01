@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Tabs, Button, Card, Spin, Space, Dropdown, message } from 'antd';
+import { Tabs, Button, Card, Spin, Space, Dropdown, App } from 'antd';
 import { ArrowLeftOutlined, DownloadOutlined, FileTextOutlined, FileOutlined } from '@ant-design/icons';
 import { projectApi } from '../api';
 import { useQuery } from '@tanstack/react-query';
@@ -9,6 +9,7 @@ import BlueprintPanel from '../components/project/BlueprintPanel';
 import ChapterPanel from '../components/project/ChapterPanel';
 
 function ProjectDetail() {
+  const { message } = App.useApp();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('architecture');
