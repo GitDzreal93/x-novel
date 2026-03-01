@@ -1,4 +1,4 @@
-import { ConfigProvider, theme } from 'antd';
+import { ConfigProvider, theme, App as AntApp } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAppStore } from './stores';
@@ -16,15 +16,17 @@ function App() {
         algorithm: appTheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
       }}
     >
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<Navigate to="/projects" replace />} />
-            <Route path="projects" element={<ProjectList />} />
-            <Route path="projects/:id" element={<ProjectDetail />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <AntApp>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<Navigate to="/projects" replace />} />
+              <Route path="projects" element={<ProjectList />} />
+              <Route path="projects/:id" element={<ProjectDetail />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </AntApp>
     </ConfigProvider>
   );
 }
