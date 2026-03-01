@@ -15,13 +15,20 @@ function ProjectList() {
   const [form] = Form.useForm();
 
   // 获取项目列表
-  const { data: projectsData, isLoading } = useQuery({
+  const { data: projectsData, isLoading, error } = useQuery({
     queryKey: ['projects', page],
     queryFn: () =>
-      projectApi.list({ page, page_size: 10 }).then((res) => res.data),
+      projectApi.list({ page, page_size: 10 }).then((res) => {
+        console.log('API Response:', res);
+        return res.data;
+      }),
   });
 
   const projects = projectsData?.projects || [];
+
+  if (error) {
+    console.error('Query error:', error);
+  }
 
   // 创建项目
   const createMutation = useMutation({

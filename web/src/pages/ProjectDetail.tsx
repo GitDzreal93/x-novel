@@ -15,9 +15,10 @@ function ProjectDetail() {
   const [activeTab, setActiveTab] = useState('architecture');
 
   // 获取项目详情
-  const { data: projectRes, isLoading } = useQuery({
+  const { data: projectRes, isLoading, error } = useQuery({
     queryKey: ['project', id],
     queryFn: () => projectApi.getById(id!).then((res) => {
+      console.log('Project API Response:', res);
       if (!res?.data) {
         throw new Error(res?.message || '获取项目失败');
       }
@@ -25,6 +26,14 @@ function ProjectDetail() {
     }),
     enabled: !!id,
   });
+
+  if (error) {
+    console.error('Project query error:', error);
+  }
+
+  if (projectRes) {
+    console.log('Project data loaded:', projectRes);
+  }
 
   const project = projectRes;
 

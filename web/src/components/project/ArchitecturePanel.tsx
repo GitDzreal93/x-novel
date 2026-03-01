@@ -19,6 +19,10 @@ function ArchitecturePanel({ project }: ArchitecturePanelProps) {
 
   // 当 project 架构数据更新时，更新表单内容
   useEffect(() => {
+    console.log('ArchitecturePanel: project data updated', {
+      core_seed: project.core_seed?.substring(0, 50) || 'empty',
+      hasData: !!project.core_seed,
+    });
     form.setFieldsValue({
       core_seed: project.core_seed || '',
       character_dynamics: project.character_dynamics || '',

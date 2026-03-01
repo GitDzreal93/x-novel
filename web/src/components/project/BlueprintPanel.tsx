@@ -19,6 +19,10 @@ function BlueprintPanel({ project }: BlueprintPanelProps) {
 
   // 当 project 数据更新时，更新表单内容
   useEffect(() => {
+    console.log('BlueprintPanel: project data updated', {
+      chapter_blueprint_length: project.chapter_blueprint?.length || 0,
+      hasData: !!project.chapter_blueprint,
+    });
     form.setFieldsValue({
       chapter_blueprint: project.chapter_blueprint || '',
     });
