@@ -112,16 +112,13 @@ type ChapterListResponse struct {
 
 // ModelConfigResponse 模型配置响应
 type ModelConfigResponse struct {
-	ID         uuid.UUID `json:"id"`
-	ProviderID int       `json:"provider_id"`
-	ModelName  string    `json:"model_name"`
-	Purpose    string    `json:"purpose"`
-	BaseURL    string    `json:"base_url,omitempty"`
-	IsActive   bool      `json:"is_active"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
-
-	// 关联的提供商信息
+	ID         uuid.UUID             `json:"id"`
+	ProviderID int                   `json:"provider_id"`
+	ModelName  string                `json:"model_name"`
+	BaseURL    string                `json:"base_url,omitempty"`
+	IsActive   bool                  `json:"is_active"`
+	CreatedAt  time.Time             `json:"created_at"`
+	UpdatedAt  time.Time             `json:"updated_at"`
 	Provider   *ModelProviderResponse `json:"provider,omitempty"`
 }
 
@@ -139,6 +136,16 @@ type ModelProviderResponse struct {
 	BaseURL     string `json:"base_url,omitempty"`
 	AuthType    string `json:"auth_type,omitempty"`
 	IsActive    bool   `json:"is_active"`
+}
+
+// ModelBindingResponse 功能绑定响应
+type ModelBindingResponse struct {
+	ID            uuid.UUID          `json:"id"`
+	Purpose       string             `json:"purpose"`
+	ModelConfigID uuid.UUID          `json:"model_config_id"`
+	ModelConfig   *ModelConfigResponse `json:"model_config,omitempty"`
+	CreatedAt     time.Time          `json:"created_at"`
+	UpdatedAt     time.Time          `json:"updated_at"`
 }
 
 // ========== 设备响应 ==========
@@ -328,7 +335,6 @@ func ModelConfigFromModel(mc *model.ModelConfig) *ModelConfigResponse {
 		ID:         mc.ID,
 		ProviderID: mc.ProviderID,
 		ModelName:  mc.ModelName,
-		Purpose:    mc.Purpose,
 		BaseURL:    mc.BaseURL,
 		IsActive:   mc.IsActive,
 		CreatedAt:  mc.CreatedAt,
@@ -344,6 +350,23 @@ func ModelConfigFromModel(mc *model.ModelConfig) *ModelConfigResponse {
 			AuthType:    mc.Provider.AuthType,
 			IsActive:    mc.Provider.IsActive,
 		}
+	}
+
+	return resp
+}
+
+// ModelBindingFromModel 从模型转换为功能绑定响应
+func ModelBindingFromModel(mb *model.ModelBinding) *ModelBindingResponse {
+	resp := &ModelBindingResponse{
+		ID:            mb.ID,
+		Purpose:       mb.Purpose,
+		ModelConfigID: mb.ModelConfigID,
+		CreatedAt:     mb.CreatedAt,
+		UpdatedAt:     mb.UpdatedAt,
+	}
+
+	if mb.ModelConfig != nil {
+		resp.ModelConfig = ModelConfigFromModel(mb.ModelConfig)
 	}
 
 	return resp

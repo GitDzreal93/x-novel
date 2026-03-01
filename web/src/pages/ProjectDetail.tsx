@@ -239,7 +239,7 @@ function ProjectDetail() {
               {project.genre && project.genre.length > 0 && (
                 <Flex wrap gap={6} style={{ marginBottom: 10 }}>
                   {project.genre.map((g: string) => (
-                    <Tag key={g} color="purple" bordered={false} style={{ fontSize: 12 }}>
+                    <Tag key={g} color="volcano" bordered={false} style={{ fontSize: 12 }}>
                       {g}
                     </Tag>
                   ))}
@@ -264,7 +264,7 @@ function ProjectDetail() {
                   完成：{project.completed_chapters} 章
                 </Text>
                 <Text type="secondary">
-                  <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#a855f7', marginRight: 6, verticalAlign: 'middle' }} />
+                  <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#e2695d', marginRight: 6, verticalAlign: 'middle' }} />
                   字数：{project.total_words > 10000
                     ? `${(project.total_words / 10000).toFixed(1)}万`
                     : `${project.total_words}`} 字
@@ -307,7 +307,7 @@ function StatusTag({ status }: { status: string }) {
     case 'completed':
       return <Tag color="success" bordered={false}>已完结</Tag>;
     case 'published':
-      return <Tag color="purple" bordered={false}>已发布</Tag>;
+      return <Tag color="volcano" bordered={false}>已发布</Tag>;
     default:
       return <Tag color="default" bordered={false}>构思中</Tag>;
   }

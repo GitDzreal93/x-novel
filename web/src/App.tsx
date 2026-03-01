@@ -27,8 +27,9 @@ function App() {
       theme={{
         algorithm: appTheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
-          colorPrimary: '#4f46e5',
+          colorPrimary: '#ab372f',
           borderRadius: 8,
+          colorBgLayout: '#faf8f6',
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         },
       }}

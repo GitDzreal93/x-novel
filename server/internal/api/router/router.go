@@ -56,6 +56,11 @@ func SetupRouter(
 			models.GET("/:id", modelConfigHandler.GetByID)
 			models.PUT("/:id", modelConfigHandler.Update)
 			models.DELETE("/:id", modelConfigHandler.Delete)
+
+			// 功能绑定
+			models.GET("/bindings", modelConfigHandler.ListBindings)
+			models.POST("/bindings", modelConfigHandler.UpsertBinding)
+			models.DELETE("/bindings/:purpose", modelConfigHandler.DeleteBinding)
 		}
 
 		// 项目

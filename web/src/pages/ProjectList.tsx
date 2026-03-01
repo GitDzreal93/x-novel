@@ -140,7 +140,7 @@ function ProjectList() {
                   {project.genre && project.genre.length > 0 && (
                     <Flex wrap gap={6} style={{ marginBottom: 12 }}>
                       {project.genre.slice(0, 3).map((g) => (
-                        <Tag key={g} color="purple" bordered={false} style={{ fontSize: 11 }}>
+                        <Tag key={g} color="volcano" bordered={false} style={{ fontSize: 11 }}>
                           {g}
                         </Tag>
                       ))}
@@ -178,7 +178,7 @@ function ProjectList() {
                       percent={progress}
                       size="small"
                       showInfo={false}
-                      strokeColor={{ '0%': '#818cf8', '100%': '#6366f1' }}
+                      strokeColor={{ '0%': '#e2695d', '100%': '#ab372f' }}
                     />
                   </div>
                 </Card>

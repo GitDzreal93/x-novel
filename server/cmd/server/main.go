@@ -167,6 +167,7 @@ func autoMigrate(db *gorm.DB) error {
 		&model.Chapter{},
 		&model.ModelProvider{},
 		&model.ModelConfig{},
+		&model.ModelBinding{},
 		&model.Conversation{},
 		&model.Message{},
 	)
@@ -238,13 +239,21 @@ func initDefaultProviders(db *gorm.DB) error {
 	}
 
 	for _, provider := range providers {
-		// 使用 FirstOrCreate 避免重复插入
-		result := db.Where("name = ?", provider.Name).FirstOrCreate(&provider)
+		var existing model.ModelProvider
+		result := db.Where("name = ?", provider.Name).First(&existing)
 		if result.Error != nil {
-			logger.Warn("创建提供商失败",
-				zap.String("name", provider.Name),
-				zap.Error(result.Error),
-			)
+			if err := db.Create(&provider).Error; err != nil {
+				logger.Warn("创建提供商失败",
+					zap.String("name", provider.Name),
+					zap.Error(err),
+				)
+			}
+		} else {
+			db.Model(&existing).Select("display_name", "base_url", "is_active").Updates(model.ModelProvider{
+				DisplayName: provider.DisplayName,
+				BaseURL:     provider.BaseURL,
+				IsActive:    true,
+			})
 		}
 	}
 

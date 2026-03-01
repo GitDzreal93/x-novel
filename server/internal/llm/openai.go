@@ -1,19 +1,19 @@
 package llm
 
 import (
-	"bufio"
-	"bytes"
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"time"
+
+	openai "github.com/sashabaranov/go-openai"
 )
 
-// OpenAIAdapter OpenAI 适配器
+// OpenAIAdapter 基于 go-openai 库的适配器，兼容所有 OpenAI 协议的服务
 type OpenAIAdapter struct {
-	client  *http.Client
 	baseURL string
 	model   string
 }
@@ -24,168 +24,88 @@ func NewOpenAIAdapter(baseURL, model string) *OpenAIAdapter {
 		baseURL = "https://api.openai.com/v1"
 	}
 	return &OpenAIAdapter{
-		client:  &http.Client{},
 		baseURL: strings.TrimSuffix(baseURL, "/"),
 		model:   model,
 	}
 }
 
-// ChatRequest 聊天请求
-type ChatRequest struct {
-	Model       string        `json:"model"`
-	Messages    []ChatMessage `json:"messages"`
-	Temperature float32       `json:"temperature,omitempty"`
-	MaxTokens   int           `json:"max_tokens,omitempty"`
-	Stream      bool          `json:"stream,omitempty"`
+func (a *OpenAIAdapter) newClient(apiKey string) *openai.Client {
+	cfg := openai.DefaultConfig(apiKey)
+	cfg.BaseURL = a.baseURL
+	cfg.HTTPClient = &http.Client{Timeout: 120 * time.Second}
+	return openai.NewClientWithConfig(cfg)
 }
 
-// ChatResponse 聊天响应
-type ChatResponse struct {
-	ID      string   `json:"id"`
-	Object  string   `json:"object"`
-	Created int64    `json:"created"`
-	Model   string   `json:"model"`
-	Choices []Choice `json:"choices"`
-	Usage   Usage    `json:"usage"`
-}
-
-// Choice 选择
-type Choice struct {
-	Index        int         `json:"index"`
-	Message      ChatMessage `json:"message,omitempty"`
-	Delta        *Delta      `json:"delta,omitempty"`
-	FinishReason string      `json:"finish_reason,omitempty"`
-}
-
-// Delta 增量（流式）
-type Delta struct {
-	Role    string `json:"role,omitempty"`
-	Content string `json:"content,omitempty"`
-}
-
-// Usage 使用情况
-type Usage struct {
-	PromptTokens     int `json:"prompt_tokens"`
-	CompletionTokens int `json:"completion_tokens"`
-	TotalTokens      int `json:"total_tokens"`
+func toOpenAIMessages(messages []ChatMessage) []openai.ChatCompletionMessage {
+	out := make([]openai.ChatCompletionMessage, len(messages))
+	for i, m := range messages {
+		out[i] = openai.ChatCompletionMessage{
+			Role:    m.Role,
+			Content: m.Content,
+		}
+	}
+	return out
 }
 
 // ChatCompletion 聊天补全
 func (a *OpenAIAdapter) ChatCompletion(ctx context.Context, messages []ChatMessage, options ChatOptions) (string, error) {
-	req := ChatRequest{
+	client := a.newClient(options.APIKey)
+
+	req := openai.ChatCompletionRequest{
 		Model:       a.model,
-		Messages:    messages,
+		Messages:    toOpenAIMessages(messages),
 		Temperature: options.Temperature,
 		MaxTokens:   options.MaxTokens,
-		Stream:      false,
 	}
 
-	body, err := json.Marshal(req)
+	resp, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
-		return "", fmt.Errorf("序列化请求失败: %w", err)
+		return "", fmt.Errorf("LLM 请求失败: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", a.baseURL+"/chat/completions", bytes.NewReader(body))
-	if err != nil {
-		return "", fmt.Errorf("创建请求失败: %w", err)
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	if options.APIKey != "" {
-		httpReq.Header.Set("Authorization", "Bearer "+options.APIKey)
-	}
-
-	resp, err := a.client.Do(httpReq)
-	if err != nil {
-		return "", fmt.Errorf("发送请求失败: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("API 请求失败: %s, %s", resp.Status, string(body))
-	}
-
-	var chatResp ChatResponse
-	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
-		return "", fmt.Errorf("解析响应失败: %w", err)
-	}
-
-	if len(chatResp.Choices) == 0 {
+	if len(resp.Choices) == 0 {
 		return "", ErrInvalidResponse
 	}
 
-	return chatResp.Choices[0].Message.Content, nil
+	return resp.Choices[0].Message.Content, nil
 }
 
 // StreamChatCompletion 流式聊天补全
 func (a *OpenAIAdapter) StreamChatCompletion(ctx context.Context, messages []ChatMessage, options ChatOptions, callback StreamCallback) (string, error) {
-	req := ChatRequest{
+	client := a.newClient(options.APIKey)
+
+	req := openai.ChatCompletionRequest{
 		Model:       a.model,
-		Messages:    messages,
+		Messages:    toOpenAIMessages(messages),
 		Temperature: options.Temperature,
 		MaxTokens:   options.MaxTokens,
 		Stream:      true,
 	}
 
-	body, err := json.Marshal(req)
+	stream, err := client.CreateChatCompletionStream(ctx, req)
 	if err != nil {
-		return "", fmt.Errorf("序列化请求失败: %w", err)
+		return "", fmt.Errorf("LLM 流式请求失败: %w", err)
 	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", a.baseURL+"/chat/completions", bytes.NewReader(body))
-	if err != nil {
-		return "", fmt.Errorf("创建请求失败: %w", err)
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	if options.APIKey != "" {
-		httpReq.Header.Set("Authorization", "Bearer "+options.APIKey)
-	}
-	httpReq.Header.Set("Accept", "text/event-stream")
-
-	resp, err := a.client.Do(httpReq)
-	if err != nil {
-		return "", fmt.Errorf("发送请求失败: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("API 请求失败: %s, %s", resp.Status, string(body))
-	}
+	defer stream.Close()
 
 	var fullContent strings.Builder
 
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if !strings.HasPrefix(line, "data: ") {
-			continue
-		}
-
-		data := strings.TrimPrefix(line, "data: ")
-		if data == "[DONE]" {
+	for {
+		resp, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
 			break
 		}
-
-		var streamResp struct {
-			Choices []struct {
-				Delta struct {
-					Content string `json:"content"`
-				} `json:"delta"`
-			} `json:"choices"`
+		if err != nil {
+			return fullContent.String(), fmt.Errorf("流式读取失败: %w", err)
 		}
 
-		if err := json.NewDecoder(bytes.NewReader([]byte(data))).Decode(&streamResp); err != nil {
-			continue
-		}
-
-		if len(streamResp.Choices) > 0 {
-			content := streamResp.Choices[0].Delta.Content
-			fullContent.WriteString(content)
-			if err := callback(content); err != nil {
-				return "", err
+		if len(resp.Choices) > 0 {
+			content := resp.Choices[0].Delta.Content
+			if content != "" {
+				fullContent.WriteString(content)
+				if cbErr := callback(content); cbErr != nil {
+					return fullContent.String(), cbErr
+				}
 			}
 		}
 	}
@@ -193,18 +113,31 @@ func (a *OpenAIAdapter) StreamChatCompletion(ctx context.Context, messages []Cha
 	return fullContent.String(), nil
 }
 
-// ValidateConfig 验证配置
+// ValidateConfig 验证模型配置（发送真实测试请求）
 func (a *OpenAIAdapter) ValidateConfig(apiKey, baseURL string) error {
-	// 简单的验证：检查 API Key 是否非空
 	if apiKey == "" {
 		return ErrInvalidAPIKey
 	}
 
-	// TODO: 可以添加实际的 API 测试请求
+	adapter := NewOpenAIAdapter(baseURL, a.model)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	_, err := adapter.ChatCompletion(ctx, []ChatMessage{
+		{Role: "user", Content: "Hi"},
+	}, ChatOptions{
+		APIKey:      apiKey,
+		Temperature: 0.1,
+		MaxTokens:   5,
+	})
+
+	if err != nil {
+		return &LLMError{Message: "连接验证失败", Err: err}
+	}
 	return nil
 }
 
 // GetDefaultModel 获取默认模型
 func (a *OpenAIAdapter) GetDefaultModel() string {
-	return "gpt-3.5-turbo"
+	return a.model
 }

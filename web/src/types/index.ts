@@ -158,7 +158,6 @@ export interface ModelConfig {
   id: string;
   provider_id: number;
   model_name: string;
-  purpose: 'architecture' | 'chapter' | 'writing' | 'review' | 'general';
   base_url?: string;
   is_active: boolean;
   created_at: string;
@@ -169,14 +168,12 @@ export interface ModelConfig {
 export interface CreateModelConfigRequest {
   provider_id: number;
   model_name: string;
-  purpose: ModelConfig['purpose'];
   api_key: string;
   base_url?: string;
 }
 
 export interface UpdateModelConfigRequest {
   model_name?: string;
-  purpose?: ModelConfig['purpose'];
   api_key?: string;
   base_url?: string;
   is_active?: boolean;
@@ -186,6 +183,23 @@ export interface ValidateModelConfigRequest {
   provider_id: number;
   api_key: string;
   base_url?: string;
+}
+
+// 功能绑定类型
+export type BindingPurpose = 'architecture' | 'chapter' | 'writing' | 'review' | 'general';
+
+export interface ModelBinding {
+  id: string;
+  purpose: BindingPurpose;
+  model_config_id: string;
+  model_config?: ModelConfig;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UpsertModelBindingRequest {
+  purpose: BindingPurpose;
+  model_config_id: string;
 }
 
 // 关系图谱相关类型

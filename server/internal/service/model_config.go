@@ -44,7 +44,6 @@ func (s *ModelConfigService) Create(ctx context.Context, deviceID uuid.UUID, req
 		DeviceID:   deviceID,
 		ProviderID: req.ProviderID,
 		ModelName:  req.ModelName,
-		Purpose:    req.Purpose,
 		APIKey:     req.APIKey,
 		BaseURL:    req.BaseURL,
 		IsActive:   true,
@@ -92,9 +91,6 @@ func (s *ModelConfigService) Update(ctx context.Context, id string, req *dto.Upd
 	if req.ModelName != nil {
 		config.ModelName = *req.ModelName
 	}
-	if req.Purpose != nil {
-		config.Purpose = *req.Purpose
-	}
 	if req.APIKey != nil {
 		config.APIKey = *req.APIKey
 	}
@@ -113,8 +109,11 @@ func (s *ModelConfigService) Update(ctx context.Context, id string, req *dto.Upd
 	return config, nil
 }
 
-// Delete 删除配置
+// Delete 删除配置（同时清理关联的绑定）
 func (s *ModelConfigService) Delete(ctx context.Context, id string) error {
+	if err := s.modelRepo.DeleteBindingsByConfigID(ctx, id); err != nil {
+		logger.Warn("清理关联绑定失败", zap.String("config_id", id), zap.Error(err))
+	}
 	if err := s.modelRepo.Delete(ctx, id); err != nil {
 		logger.Error("删除模型配置失败", zap.String("id", id), zap.Error(err))
 		return err
@@ -183,4 +182,56 @@ func (s *ModelConfigService) GetByPurpose(ctx context.Context, deviceID uuid.UUI
 		return nil, err
 	}
 	return config, nil
+}
+
+// ========== 功能绑定 ==========
+
+// ListBindings 获取设备的所有功能绑定
+func (s *ModelConfigService) ListBindings(ctx context.Context, deviceID uuid.UUID) ([]*model.ModelBinding, error) {
+	bindings, err := s.modelRepo.ListBindings(ctx, deviceID.String())
+	if err != nil {
+		logger.Error("获取功能绑定列表失败", zap.Error(err))
+		return nil, err
+	}
+	return bindings, nil
+}
+
+// UpsertBinding 创建或更新功能绑定
+func (s *ModelConfigService) UpsertBinding(ctx context.Context, deviceID uuid.UUID, purpose string, configID uuid.UUID) (*model.ModelBinding, error) {
+	// 验证 configID 对应的配置存在
+	if _, err := s.modelRepo.GetByID(ctx, configID.String()); err != nil {
+		return nil, errors.New("模型配置不存在")
+	}
+
+	binding := &model.ModelBinding{
+		DeviceID:      deviceID,
+		Purpose:       purpose,
+		ModelConfigID: configID,
+	}
+
+	if err := s.modelRepo.UpsertBinding(ctx, binding); err != nil {
+		logger.Error("保存功能绑定失败", zap.Error(err))
+		return nil, err
+	}
+
+	// 重新查询以获取关联数据
+	bindings, err := s.modelRepo.ListBindings(ctx, deviceID.String())
+	if err != nil {
+		return binding, nil
+	}
+	for _, b := range bindings {
+		if b.Purpose == purpose {
+			return b, nil
+		}
+	}
+	return binding, nil
+}
+
+// DeleteBinding 删除功能绑定
+func (s *ModelConfigService) DeleteBinding(ctx context.Context, deviceID uuid.UUID, purpose string) error {
+	if err := s.modelRepo.DeleteBinding(ctx, deviceID.String(), purpose); err != nil {
+		logger.Error("删除功能绑定失败", zap.Error(err))
+		return err
+	}
+	return nil
 }

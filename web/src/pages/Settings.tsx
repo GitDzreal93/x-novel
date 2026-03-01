@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import {
   Form, Input, Select, Button, Table, Modal, Space, Tag, Switch,
   Popconfirm, App, Tabs, Typography, Card, Flex, theme, Statistic,
-  Upload, Spin, Result,
+  Upload, Spin, Result, Divider,
 } from 'antd';
 import {
   PlusOutlined,
@@ -18,20 +18,21 @@ import {
   FileTextOutlined,
   MessageOutlined,
   BookOutlined,
+  LinkOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { modelConfigApi, backupApi } from '../api';
 import { useAppStore } from '../stores';
-import type { ModelConfig, ModelProvider, CreateModelConfigRequest, ImportResult } from '../types';
+import type { ModelConfig, ModelProvider, ModelBinding, CreateModelConfigRequest, BindingPurpose, ImportResult } from '../types';
 
 const { Title, Text } = Typography;
 
-const PURPOSE_OPTIONS = [
-  { label: '架构生成', value: 'architecture' },
-  { label: '章节生成', value: 'chapter' },
-  { label: '写作辅助', value: 'writing' },
-  { label: 'AI 审阅', value: 'review' },
-  { label: '通用', value: 'general' },
+const BINDING_PURPOSES: { key: BindingPurpose; label: string; description: string }[] = [
+  { key: 'architecture', label: '架构生成', description: '生成小说世界观、人物关系等整体架构' },
+  { key: 'chapter', label: '章节生成', description: '生成章节内容和大纲' },
+  { key: 'writing', label: '写作助手', description: '文本润色、续写、建议等辅助功能' },
+  { key: 'review', label: 'AI 审阅', description: '错误检测、质量评审、市场预测' },
+  { key: 'general', label: '通用 / 对话', description: '灵感对话等通用 AI 交互' },
 ];
 
 const MODEL_OPTIONS: Record<string, string[]> = {
@@ -65,6 +66,12 @@ function Settings() {
   });
   const configs = configsRes?.configs || [];
 
+  const { data: bindingsRes } = useQuery({
+    queryKey: ['model-bindings'],
+    queryFn: () => modelConfigApi.listBindings().then((res) => res.data || []),
+  });
+  const bindings: ModelBinding[] = bindingsRes || [];
+
   const createMutation = useMutation({
     mutationFn: (data: CreateModelConfigRequest) => modelConfigApi.create(data),
     onSuccess: () => {
@@ -97,6 +104,7 @@ function Settings() {
     onSuccess: () => {
       message.success('配置已删除');
       queryClient.invalidateQueries({ queryKey: ['model-configs'] });
+      queryClient.invalidateQueries({ queryKey: ['model-bindings'] });
     },
     onError: () => {
       message.error('删除失败');
@@ -110,6 +118,26 @@ function Settings() {
     },
     onError: (err: any) => {
       message.error(err?.response?.data?.message || '验证失败');
+    },
+  });
+
+  const bindingMutation = useMutation({
+    mutationFn: (data: { purpose: BindingPurpose; model_config_id: string }) =>
+      modelConfigApi.upsertBinding(data),
+    onSuccess: () => {
+      message.success('绑定已更新');
+      queryClient.invalidateQueries({ queryKey: ['model-bindings'] });
+    },
+    onError: () => {
+      message.error('绑定更新失败');
+    },
+  });
+
+  const unbindMutation = useMutation({
+    mutationFn: (purpose: string) => modelConfigApi.deleteBinding(purpose),
+    onSuccess: () => {
+      message.success('已取消绑定');
+      queryClient.invalidateQueries({ queryKey: ['model-bindings'] });
     },
   });
 
@@ -129,7 +157,6 @@ function Settings() {
     form.setFieldsValue({
       provider_id: config.provider_id,
       model_name: config.model_name,
-      purpose: config.purpose,
       base_url: config.base_url,
       is_active: config.is_active,
     });
@@ -149,27 +176,14 @@ function Settings() {
     });
   };
 
-  const getPurposeTag = (purpose: string) => {
-    const colors: Record<string, string> = {
-      architecture: 'blue',
-      chapter: 'green',
-      writing: 'purple',
-      review: 'orange',
-      general: 'default',
-    };
-    const labels: Record<string, string> = {
-      architecture: '架构生成',
-      chapter: '章节生成',
-      writing: '写作辅助',
-      review: 'AI 审阅',
-      general: '通用',
-    };
-    return (
-      <Tag color={colors[purpose]} bordered={false}>
-        {labels[purpose] || purpose}
-      </Tag>
-    );
+  const getBindingForPurpose = (purpose: BindingPurpose): ModelBinding | undefined => {
+    return bindings.find((b) => b.purpose === purpose);
   };
+
+  const configSelectOptions = configs.map((c: ModelConfig) => ({
+    label: `${c.provider?.display_name || '未知'} / ${c.model_name}`,
+    value: c.id,
+  }));
 
   const columns = [
     {
@@ -187,12 +201,6 @@ function Settings() {
       render: (text: string) => (
         <Text type="secondary" code style={{ fontSize: 13 }}>{text}</Text>
       ),
-    },
-    {
-      title: '用途',
-      dataIndex: 'purpose',
-      key: 'purpose',
-      render: (purpose: string) => getPurposeTag(purpose),
     },
     {
       title: '状态',
@@ -217,7 +225,7 @@ function Settings() {
           </Button>
           <Popconfirm
             title="删除配置"
-            description="确定要删除这个模型配置吗？"
+            description="确定要删除这个模型配置吗？关联的功能绑定也会被清除。"
             okText="确定"
             cancelText="取消"
             onConfirm={() => deleteMutation.mutate(record.id)}
@@ -246,6 +254,7 @@ function Settings() {
       ),
       children: (
         <div style={{ padding: '8px 0' }}>
+          {/* 模型配置列表 */}
           <Flex
             justify="space-between"
             align="center"
@@ -255,11 +264,11 @@ function Settings() {
           >
             <div>
               <Flex align="center" gap={8}>
-                <Title level={5} style={{ margin: 0 }}>AI 大模型配置</Title>
+                <Title level={5} style={{ margin: 0 }}>AI 模型配置</Title>
                 <KeyOutlined style={{ color: token.colorPrimary }} />
               </Flex>
               <Text type="secondary" style={{ fontSize: 13 }}>
-                为不同的创作环节配置专属的 AI 模型，支持多个提供商
+                添加 AI 模型的连接信息（提供商、模型、API Key），然后在下方为各功能选择使用哪个模型
               </Text>
             </div>
             <Button
@@ -290,12 +299,70 @@ function Settings() {
                   <Text strong>还没有配置任何模型</Text>
                   <br />
                   <Text type="secondary" style={{ fontSize: 13 }}>
-                    添加模型配置后，AI 创作功能才能正常使用
+                    添加模型配置后，才能在下方为各个功能绑定模型
                   </Text>
                 </div>
               ),
             }}
           />
+
+          {/* 功能绑定 */}
+          <Divider />
+          <div style={{ marginBottom: 20 }}>
+            <Flex align="center" gap={8}>
+              <Title level={5} style={{ margin: 0 }}>功能绑定</Title>
+              <LinkOutlined style={{ color: token.colorPrimary }} />
+            </Flex>
+            <Text type="secondary" style={{ fontSize: 13 }}>
+              为每个 AI 功能选择使用哪个模型配置，未绑定的功能将自动使用"通用"配置
+            </Text>
+          </div>
+
+          <Flex vertical gap={12}>
+            {BINDING_PURPOSES.map(({ key, label, description }) => {
+              const binding = getBindingForPurpose(key);
+              return (
+                <Flex
+                  key={key}
+                  justify="space-between"
+                  align="center"
+                  style={{
+                    padding: '14px 20px',
+                    background: token.colorBgLayout,
+                    border: `1px solid ${token.colorBorderSecondary}`,
+                    borderRadius: token.borderRadius,
+                  }}
+                >
+                  <div style={{ minWidth: 160 }}>
+                    <Text strong>{label}</Text>
+                    <br />
+                    <Text type="secondary" style={{ fontSize: 12 }}>{description}</Text>
+                  </div>
+                  <Flex align="center" gap={8}>
+                    <Select
+                      style={{ width: 280 }}
+                      placeholder="选择模型配置"
+                      allowClear
+                      value={binding?.model_config_id}
+                      options={configSelectOptions}
+                      onChange={(value) => {
+                        if (value) {
+                          bindingMutation.mutate({ purpose: key, model_config_id: value });
+                        } else {
+                          unbindMutation.mutate(key);
+                        }
+                      }}
+                      notFoundContent={
+                        <Text type="secondary" style={{ fontSize: 13 }}>
+                          请先在上方添加模型配置
+                        </Text>
+                      }
+                    />
+                  </Flex>
+                </Flex>
+              );
+            })}
+          </Flex>
         </div>
       ),
     },
@@ -451,14 +518,6 @@ function Settings() {
             ) : (
               <Input size="large" placeholder="输入模型名称，如 gpt-4o" />
             )}
-          </Form.Item>
-
-          <Form.Item
-            name="purpose"
-            label="使用场景"
-            rules={[{ required: true, message: '请选择用途' }]}
-          >
-            <Select size="large" placeholder="选择此模型配置的具体用途" options={PURPOSE_OPTIONS} />
           </Form.Item>
 
           <Form.Item

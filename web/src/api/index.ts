@@ -11,9 +11,11 @@ import type {
   UpdateChapterRequest,
   ModelConfig,
   ModelProvider,
+  ModelBinding,
   CreateModelConfigRequest,
   UpdateModelConfigRequest,
   ValidateModelConfigRequest,
+  UpsertModelBindingRequest,
   Conversation,
   CreateConversationRequest,
   SendMessageResponse,
@@ -206,6 +208,21 @@ export const modelConfigApi = {
   // 验证模型配置
   validate: (data: ValidateModelConfigRequest) => {
     return request.post<Response<void>>('/api/v1/models/validate', data);
+  },
+
+  // 获取功能绑定列表
+  listBindings: () => {
+    return request.get<Response<ModelBinding[]>>('/api/v1/models/bindings');
+  },
+
+  // 创建或更新功能绑定
+  upsertBinding: (data: UpsertModelBindingRequest) => {
+    return request.post<Response<ModelBinding>>('/api/v1/models/bindings', data);
+  },
+
+  // 删除功能绑定
+  deleteBinding: (purpose: string) => {
+    return request.delete<Response<void>>(`/api/v1/models/bindings/${purpose}`);
   },
 };
 

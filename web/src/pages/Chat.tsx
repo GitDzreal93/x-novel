@@ -382,7 +382,7 @@ function Chat() {
                 width: 64,
                 height: 64,
                 borderRadius: 16,
-                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                background: 'linear-gradient(135deg, #ab372f, #88100f)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -576,8 +576,8 @@ function MessageBubble({
         icon={isUser ? <UserOutlined /> : <RobotOutlined />}
         style={{
           background: isUser
-            ? 'linear-gradient(135deg, #818cf8, #a855f7)'
-            : 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+            ? 'linear-gradient(135deg, #e2695d, #bd483e)'
+            : 'linear-gradient(135deg, #ab372f, #88100f)',
           flexShrink: 0,
           marginTop: 2,
         }}

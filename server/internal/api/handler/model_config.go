@@ -9,6 +9,7 @@ import (
 	"x-novel/internal/service"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // ModelConfigHandler 模型配置处理器
@@ -280,4 +281,79 @@ func (h *ModelConfigHandler) Validate(c *gin.Context) {
 		Code:    http.StatusOK,
 		Message: "验证成功",
 	})
+}
+
+// ========== 功能绑定相关 ==========
+
+// ListBindings 获取功能绑定列表
+func (h *ModelConfigHandler) ListBindings(c *gin.Context) {
+	deviceUUID, err := middleware.GetDeviceUUID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Code: http.StatusUnauthorized, Message: "未授权"})
+		return
+	}
+
+	bindings, err := h.modelConfigService.ListBindings(c.Request.Context(), deviceUUID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Code: http.StatusInternalServerError, Message: "获取功能绑定列表失败"})
+		return
+	}
+
+	resp := make([]dto.ModelBindingResponse, 0, len(bindings))
+	for _, b := range bindings {
+		resp = append(resp, *dto.ModelBindingFromModel(b))
+	}
+
+	c.JSON(http.StatusOK, dto.Response{Code: http.StatusOK, Message: "success", Data: resp})
+}
+
+// UpsertBinding 创建或更新功能绑定
+func (h *ModelConfigHandler) UpsertBinding(c *gin.Context) {
+	deviceUUID, err := middleware.GetDeviceUUID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Code: http.StatusUnauthorized, Message: "未授权"})
+		return
+	}
+
+	var req dto.UpsertModelBindingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Code: http.StatusBadRequest, Message: "请求参数错误: " + err.Error()})
+		return
+	}
+
+	configID, err := uuid.Parse(req.ModelConfigID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Code: http.StatusBadRequest, Message: "无效的模型配置 ID"})
+		return
+	}
+
+	binding, err := h.modelConfigService.UpsertBinding(c.Request.Context(), deviceUUID, req.Purpose, configID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Code: http.StatusInternalServerError, Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.Response{Code: http.StatusOK, Message: "success", Data: dto.ModelBindingFromModel(binding)})
+}
+
+// DeleteBinding 删除功能绑定
+func (h *ModelConfigHandler) DeleteBinding(c *gin.Context) {
+	deviceUUID, err := middleware.GetDeviceUUID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Code: http.StatusUnauthorized, Message: "未授权"})
+		return
+	}
+
+	purpose := c.Param("purpose")
+	if purpose == "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Code: http.StatusBadRequest, Message: "缺少 purpose 参数"})
+		return
+	}
+
+	if err := h.modelConfigService.DeleteBinding(c.Request.Context(), deviceUUID, purpose); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Code: http.StatusInternalServerError, Message: "删除功能绑定失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.Response{Code: http.StatusOK, Message: "success"})
 }

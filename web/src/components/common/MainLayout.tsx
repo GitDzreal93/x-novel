@@ -85,7 +85,7 @@ function MainLayout() {
                   width: 30,
                   height: 30,
                   borderRadius: 8,
-                  background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                  background: 'linear-gradient(135deg, #ab372f, #88100f)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -100,7 +100,7 @@ function MainLayout() {
                 strong
                 style={{
                   fontSize: 16,
-                  background: 'linear-gradient(90deg, #4f46e5, #7c3aed)',
+                  background: 'linear-gradient(90deg, #ab372f, #88100f)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   letterSpacing: '-0.02em',
@@ -159,7 +159,7 @@ function MainLayout() {
                   size={28}
                   icon={<UserOutlined />}
                   style={{
-                    background: 'linear-gradient(135deg, #818cf8, #a855f7)',
+                    background: 'linear-gradient(135deg, #e2695d, #ab372f)',
                   }}
                 />
                 <Text style={{ fontSize: 13, fontWeight: 500 }}>Admin</Text>

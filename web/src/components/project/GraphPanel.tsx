@@ -17,7 +17,7 @@ import type { Project, GraphData, GraphNode, GraphEdge } from '../../types';
 const { Title, Text } = Typography;
 
 const NODE_TYPE_CONFIG: Record<string, { color: string; size: number; label: string }> = {
-  protagonist: { color: '#4f46e5', size: 50, label: '主角' },
+  protagonist: { color: '#ab372f', size: 50, label: '主角' },
   antagonist: { color: '#dc2626', size: 45, label: '反派' },
   supporting: { color: '#0891b2', size: 38, label: '配角' },
   minor: { color: '#6b7280', size: 28, label: '次要' },

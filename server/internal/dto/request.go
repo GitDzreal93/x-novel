@@ -98,18 +98,22 @@ type EnrichChapterRequest struct {
 type CreateModelConfigRequest struct {
 	ProviderID int    `json:"provider_id" binding:"required"`
 	ModelName  string `json:"model_name" binding:"required"`
-	Purpose    string `json:"purpose" binding:"required,oneof=architecture chapter writing review general"`
 	APIKey     string `json:"api_key" binding:"required"`
 	BaseURL    string `json:"base_url"`
 }
 
 // UpdateModelConfigRequest 更新模型配置请求
 type UpdateModelConfigRequest struct {
-	ModelName  *string `json:"model_name"`
-	Purpose    *string `json:"purpose"`
-	APIKey     *string `json:"api_key"`
-	BaseURL    *string `json:"base_url"`
-	IsActive   *bool   `json:"is_active"`
+	ModelName *string `json:"model_name"`
+	APIKey    *string `json:"api_key"`
+	BaseURL   *string `json:"base_url"`
+	IsActive  *bool   `json:"is_active"`
+}
+
+// UpsertModelBindingRequest 创建/更新功能绑定请求
+type UpsertModelBindingRequest struct {
+	Purpose       string `json:"purpose" binding:"required,oneof=architecture chapter writing review general"`
+	ModelConfigID string `json:"model_config_id" binding:"required"`
 }
 
 // ValidateModelConfigRequest 验证模型配置请求
