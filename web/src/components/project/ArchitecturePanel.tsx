@@ -17,20 +17,8 @@ function ArchitecturePanel({ project }: ArchitecturePanelProps) {
   const [form] = Form.useForm();
   const [generating, setGenerating] = useState(false);
 
-  // Debug: Log when component mounts
-  console.log('ArchitecturePanel mounted/updated:', {
-    projectId: project.id,
-    updated_at: project.updated_at,
-    has_core_seed: !!project.core_seed,
-    core_seed_length: project.core_seed?.length || 0,
-  });
-
   // 当 project 架构数据更新时，更新表单内容
   useEffect(() => {
-    console.log('ArchitecturePanel useEffect called:', {
-      has_core_seed: !!project.core_seed,
-      core_seed_length: project.core_seed?.length || 0,
-    });
     form.setFieldsValue({
       core_seed: project.core_seed || '',
       character_dynamics: project.character_dynamics || '',
@@ -58,13 +46,11 @@ function ArchitecturePanel({ project }: ArchitecturePanelProps) {
     mutationFn: (overwrite: boolean) =>
       projectApi.generateArchitecture(project.id, { overwrite }),
     onSuccess: () => {
-      console.log('generateMutation onSuccess - invalidating queries');
       message.success('架构生成成功');
       queryClient.invalidateQueries({ queryKey: ['project', project.id] });
       setGenerating(false);
     },
-    onError: (error) => {
-      console.error('generateMutation onError:', error);
+    onError: () => {
       message.error('架构生成失败');
       setGenerating(false);
     },

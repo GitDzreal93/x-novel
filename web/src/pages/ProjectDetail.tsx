@@ -15,7 +15,7 @@ function ProjectDetail() {
   const [activeTab, setActiveTab] = useState('architecture');
 
   // 获取项目详情
-  const { data: projectRes, isLoading, error } = useQuery({
+  const { data: projectRes, isLoading } = useQuery({
     queryKey: ['project', id],
     queryFn: () => projectApi.getById(id!).then((res) => {
       if (!res?.data) {
@@ -27,17 +27,6 @@ function ProjectDetail() {
   });
 
   const project = projectRes;
-
-  // Debug: Check if project data and updated_at
-  if (project) {
-    console.log('ProjectDetail render:', {
-      id: project.id,
-      updated_at: project.updated_at,
-      architecture_generated: project.architecture_generated,
-      has_core_seed: !!project.core_seed,
-      core_seed_length: project.core_seed?.length || 0,
-    });
-  }
 
   // 导出处理
   const handleExport = async (format: 'txt' | 'md') => {
