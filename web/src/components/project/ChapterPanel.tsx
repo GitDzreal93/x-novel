@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Card, List, Tag, Modal, InputNumber, Spin, Space, Input, Form, Divider, Alert, App } from 'antd';
+import { Button, Card, Tag, InputNumber, Spin, Space, Input, Form, Divider, Alert, App, Pagination } from 'antd';
 import { PlayCircleOutlined, CheckOutlined, PlusOutlined, EditOutlined, SaveOutlined, ExpandOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { chapterApi } from '../../api';
@@ -13,7 +13,7 @@ interface ChapterPanelProps {
 }
 
 function ChapterPanel({ project }: ChapterPanelProps) {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
@@ -127,7 +127,7 @@ function ChapterPanel({ project }: ChapterPanelProps) {
 
   const handleGenerate = () => {
     if (!selectedChapter) return;
-    Modal.confirm({
+    modal.confirm({
       title: '生成章节内容',
       content: `确定要生成第 ${selectedChapter.chapter_number} 章的内容吗？`,
       onOk: () => {
@@ -143,7 +143,7 @@ function ChapterPanel({ project }: ChapterPanelProps) {
 
   const handleFinalize = () => {
     if (!selectedChapter) return;
-    Modal.confirm({
+    modal.confirm({
       title: '定稿章节',
       content: '定稿后将无法再修改内容，确定要定稿吗？',
       onOk: () => {
@@ -207,18 +207,11 @@ function ChapterPanel({ project }: ChapterPanelProps) {
           </div>
         </Card>
       ) : (
-        <List
-          grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 4, xxl: 6 }}
-          dataSource={chapters}
-          pagination={{
-            total,
-            pageSize: 20,
-            current: page,
-            onChange: setPage,
-          }}
-          renderItem={(chapter) => (
-            <List.Item>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 xxl:grid-cols-6 gap-4">
+            {chapters.map((chapter) => (
               <Card
+                key={chapter.id}
                 size="small"
                 hoverable
                 onClick={() => handleChapterClick(chapter)}
@@ -261,9 +254,19 @@ function ChapterPanel({ project }: ChapterPanelProps) {
                   </div>
                 </div>
               </Card>
-            </List.Item>
-          )}
-        />
+            ))}
+          </div>
+          <div className="mt-4 flex justify-center">
+            <Pagination
+              total={total}
+              pageSize={20}
+              current={page}
+              onChange={setPage}
+              showSizeChanger={false}
+              showQuickJumper
+            />
+          </div>
+        </>
       )}
 
       {/* 创建章节弹窗 */}

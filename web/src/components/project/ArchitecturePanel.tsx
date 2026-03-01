@@ -12,7 +12,7 @@ interface ArchitecturePanelProps {
 }
 
 function ArchitecturePanel({ project }: ArchitecturePanelProps) {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const queryClient = useQueryClient();
   const [form] = Form.useForm();
   const [generating, setGenerating] = useState(false);
@@ -62,7 +62,7 @@ function ArchitecturePanel({ project }: ArchitecturePanelProps) {
 
   const handleGenerate = () => {
     if (project.architecture_generated) {
-      Modal.confirm({
+      modal.confirm({
         title: '重新生成',
         content: '架构已生成，确定要重新生成吗？当前内容将被覆盖。',
         onOk: () => {

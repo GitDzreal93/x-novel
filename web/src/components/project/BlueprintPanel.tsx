@@ -12,7 +12,7 @@ interface BlueprintPanelProps {
 }
 
 function BlueprintPanel({ project }: BlueprintPanelProps) {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const queryClient = useQueryClient();
   const [form] = Form.useForm();
   const [generating, setGenerating] = useState(false);
@@ -58,7 +58,7 @@ function BlueprintPanel({ project }: BlueprintPanelProps) {
 
   const handleGenerate = () => {
     if (project.blueprint_generated) {
-      Modal.confirm({
+      modal.confirm({
         title: '重新生成',
         content: '大纲已生成，确定要重新生成吗？当前内容将被覆盖。',
         onOk: () => {
