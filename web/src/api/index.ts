@@ -9,6 +9,11 @@ import type {
   Chapter,
   CreateChapterRequest,
   UpdateChapterRequest,
+  ModelConfig,
+  ModelProvider,
+  CreateModelConfigRequest,
+  UpdateModelConfigRequest,
+  ValidateModelConfigRequest,
 } from '../types';
 
 // ========== 设备相关 API ==========
@@ -149,5 +154,47 @@ export const chapterApi = {
       `/api/v1/projects/${projectId}/chapters/${chapterNumber}/enrich`,
       data
     );
+  },
+};
+
+// ========== 模型配置相关 API ==========
+
+export const modelConfigApi = {
+  // 获取提供商列表
+  listProviders: () => {
+    return request.get<Response<ModelProvider[]>>('/api/v1/models/providers');
+  },
+
+  // 获取模型配置列表
+  list: (params?: { page?: number; page_size?: number }) => {
+    return request.get<Response<{ configs: ModelConfig[]; total: number }>>(
+      '/api/v1/models',
+      { params }
+    );
+  },
+
+  // 创建模型配置
+  create: (data: CreateModelConfigRequest) => {
+    return request.post<Response<ModelConfig>>('/api/v1/models', data);
+  },
+
+  // 获取模型配置详情
+  getById: (id: string) => {
+    return request.get<Response<ModelConfig>>(`/api/v1/models/${id}`);
+  },
+
+  // 更新模型配置
+  update: (id: string, data: UpdateModelConfigRequest) => {
+    return request.put<Response<ModelConfig>>(`/api/v1/models/${id}`, data);
+  },
+
+  // 删除模型配置
+  delete: (id: string) => {
+    return request.delete<Response<void>>(`/api/v1/models/${id}`);
+  },
+
+  // 验证模型配置
+  validate: (data: ValidateModelConfigRequest) => {
+    return request.post<Response<void>>('/api/v1/models/validate', data);
   },
 };

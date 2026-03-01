@@ -142,3 +142,48 @@ export interface ListResponse<T> {
   items: T[];
   total: number;
 }
+
+// 模型提供商类型
+export interface ModelProvider {
+  id: number;
+  name: string;
+  display_name: string;
+  base_url?: string;
+  auth_type?: string;
+  is_active: boolean;
+}
+
+// 模型配置类型
+export interface ModelConfig {
+  id: string;
+  provider_id: number;
+  model_name: string;
+  purpose: 'architecture' | 'chapter' | 'writing' | 'review' | 'general';
+  base_url?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  provider?: ModelProvider;
+}
+
+export interface CreateModelConfigRequest {
+  provider_id: number;
+  model_name: string;
+  purpose: ModelConfig['purpose'];
+  api_key: string;
+  base_url?: string;
+}
+
+export interface UpdateModelConfigRequest {
+  model_name?: string;
+  purpose?: ModelConfig['purpose'];
+  api_key?: string;
+  base_url?: string;
+  is_active?: boolean;
+}
+
+export interface ValidateModelConfigRequest {
+  provider_id: number;
+  api_key: string;
+  base_url?: string;
+}

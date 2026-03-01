@@ -34,7 +34,13 @@ function MainLayout() {
     },
   ];
 
-  const selectedKey = location.pathname;
+  // 根据路径确定选中的菜单项
+  const getSelectedKey = () => {
+    if (location.pathname.startsWith('/projects')) return '/projects';
+    if (location.pathname.startsWith('/settings')) return '/settings';
+    return location.pathname;
+  };
+  const selectedKey = getSelectedKey();
 
   return (
     <Layout className={styles.layout}>

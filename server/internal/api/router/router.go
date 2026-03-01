@@ -15,6 +15,7 @@ func SetupRouter(
 	deviceHandler *handler.DeviceHandler,
 	projectHandler *handler.ProjectHandler,
 	chapterHandler *handler.ChapterHandler,
+	modelConfigHandler *handler.ModelConfigHandler,
 ) {
 	// 全局中间件
 	r.Use(middleware.CORS())
@@ -38,6 +39,18 @@ func SetupRouter(
 			device.GET("/info", deviceHandler.GetInfo)
 			device.GET("/settings", deviceHandler.GetSettings)
 			device.PUT("/settings", deviceHandler.UpdateSettings)
+		}
+
+		// 模型配置
+		models := v1.Group("/models")
+		{
+			models.GET("", modelConfigHandler.List)
+			models.POST("", modelConfigHandler.Create)
+			models.GET("/providers", modelConfigHandler.ListProviders)
+			models.POST("/validate", modelConfigHandler.Validate)
+			models.GET("/:id", modelConfigHandler.GetByID)
+			models.PUT("/:id", modelConfigHandler.Update)
+			models.DELETE("/:id", modelConfigHandler.Delete)
 		}
 
 		// 项目

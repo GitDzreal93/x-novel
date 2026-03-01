@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -210,9 +211,80 @@ func (s *ChapterService) GenerateChapterContent(ctx context.Context, deviceID uu
 		return s.generateMockChapterContent(ctx, project, chapter, req)
 	}
 
-	// TODO: 实现真实的 LLM 调用生成章节内容
-	_ = modelConfig
-	return nil, errors.New("章节生成功能待实现")
+	// 解析 Genre
+	var genres []string
+	if project.Genre != "" {
+		if err := json.Unmarshal([]byte(project.Genre), &genres); err != nil {
+			logger.Error("解析 Genre 失败", zap.Error(err))
+		}
+	}
+
+	// 构建提示词参数
+	params := ChapterPromptParams{
+		Title:             project.Title,
+		Topic:             project.Topic,
+		Genre:             genres,
+		UserGuidance:      project.UserGuidance,
+		WordsPerChapter:   project.WordsPerChapter,
+		CoreSeed:          project.CoreSeed,
+		CharacterDynamics: project.CharacterDynamics,
+		WorldBuilding:     project.WorldBuilding,
+		PlotArchitecture:  project.PlotArchitecture,
+		CharacterState:    project.CharacterState,
+		ChapterNumber:     chapter.ChapterNumber,
+		ChapterTitle:      chapter.Title,
+		BlueprintSummary:  chapter.BlueprintSummary,
+		GlobalSummary:     project.GlobalSummary,
+	}
+
+	// 获取提示词
+	prompt := GetChapterPrompt(chapter.ChapterNumber, params)
+
+	// 构建消息
+	messages := []llm.ChatMessage{
+		{Role: "user", Content: prompt},
+	}
+
+	// 调用 LLM
+	options := llm.ChatOptions{
+		Temperature: 0.8,
+		MaxTokens:   8000,
+		APIKey:      modelConfig.APIKey,
+	}
+
+	var content string
+	if modelConfig.BaseURL != "" {
+		adapter := llm.NewOpenAIAdapter(modelConfig.BaseURL, modelConfig.ModelName)
+		content, err = adapter.ChatCompletion(ctx, messages, options)
+	} else {
+		provider := "openai"
+		if modelConfig.Provider != nil {
+			provider = modelConfig.Provider.Name
+		}
+		content, err = s.llmManager.ChatCompletion(ctx, provider, messages, options)
+	}
+
+	if err != nil {
+		logger.Error("LLM 调用失败", zap.Error(err))
+		return nil, fmt.Errorf("生成章节内容失败: %w", err)
+	}
+
+	// 更新章节
+	chapter.Content = content
+	chapter.WordCount = utf8.RuneCountInString(content)
+	chapter.Status = "draft"
+
+	if err := s.chapterRepo.Update(ctx, chapter); err != nil {
+		logger.Error("保存章节内容失败", zap.Error(err))
+		return nil, err
+	}
+
+	logger.Info("章节内容生成完成",
+		zap.String("chapter_id", chapterID),
+		zap.Int("word_count", chapter.WordCount),
+	)
+
+	return chapter, nil
 }
 
 // generateMockChapterContent 生成模拟章节内容
@@ -384,9 +456,80 @@ func (s *ChapterService) EnrichChapter(ctx context.Context, deviceID uuid.UUID, 
 		return s.enrichMockChapter(ctx, chapter, req.TargetWords)
 	}
 
-	// TODO: 实现真实的 LLM 调用扩写章节内容
-	_ = modelConfig
-	return nil, errors.New("章节扩写功能待实现")
+	// 获取项目信息
+	project, err := s.projectRepo.GetByID(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 解析 Genre
+	var genres []string
+	if project.Genre != "" {
+		if err := json.Unmarshal([]byte(project.Genre), &genres); err != nil {
+			logger.Error("解析 Genre 失败", zap.Error(err))
+		}
+	}
+
+	// 计算目标字数
+	targetWords := req.TargetWords
+	if targetWords == 0 {
+		targetWords = chapter.WordCount + 500 // 默认增加 500 字
+	}
+
+	// 构建提示词参数
+	params := ChapterPromptParams{
+		Genre:          genres,
+		CurrentContent: chapter.Content,
+		TargetWords:    targetWords,
+	}
+
+	// 获取扩写提示词
+	prompt := GetEnrichPrompt(params)
+
+	// 构建消息
+	messages := []llm.ChatMessage{
+		{Role: "user", Content: prompt},
+	}
+
+	// 调用 LLM
+	options := llm.ChatOptions{
+		Temperature: 0.7,
+		MaxTokens:   10000,
+		APIKey:      modelConfig.APIKey,
+	}
+
+	var content string
+	if modelConfig.BaseURL != "" {
+		adapter := llm.NewOpenAIAdapter(modelConfig.BaseURL, modelConfig.ModelName)
+		content, err = adapter.ChatCompletion(ctx, messages, options)
+	} else {
+		provider := "openai"
+		if modelConfig.Provider != nil {
+			provider = modelConfig.Provider.Name
+		}
+		content, err = s.llmManager.ChatCompletion(ctx, provider, messages, options)
+	}
+
+	if err != nil {
+		logger.Error("LLM 调用失败", zap.Error(err))
+		return nil, fmt.Errorf("扩写章节内容失败: %w", err)
+	}
+
+	// 更新章节
+	chapter.Content = content
+	chapter.WordCount = utf8.RuneCountInString(content)
+
+	if err := s.chapterRepo.Update(ctx, chapter); err != nil {
+		logger.Error("保存扩写章节内容失败", zap.Error(err))
+		return nil, err
+	}
+
+	logger.Info("章节扩写完成",
+		zap.String("chapter_id", chapterID),
+		zap.Int("word_count", chapter.WordCount),
+	)
+
+	return chapter, nil
 }
 
 // enrichMockChapter 模拟扩写章节

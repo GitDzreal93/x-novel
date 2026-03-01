@@ -116,6 +116,7 @@ type ModelConfigResponse struct {
 	ProviderID int       `json:"provider_id"`
 	ModelName  string    `json:"model_name"`
 	Purpose    string    `json:"purpose"`
+	BaseURL    string    `json:"base_url,omitempty"`
 	IsActive   bool      `json:"is_active"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
@@ -135,6 +136,8 @@ type ModelProviderResponse struct {
 	ID          int    `json:"id"`
 	Name        string `json:"name"`
 	DisplayName string `json:"display_name"`
+	BaseURL     string `json:"base_url,omitempty"`
+	AuthType    string `json:"auth_type,omitempty"`
 	IsActive    bool   `json:"is_active"`
 }
 
@@ -248,4 +251,31 @@ func ChapterFromModel(c *model.Chapter) *ChapterResponse {
 		CreatedAt:            c.CreatedAt,
 		UpdatedAt:            c.UpdatedAt,
 	}
+}
+
+// ModelConfigFromModel 从模型转换为模型配置响应
+func ModelConfigFromModel(mc *model.ModelConfig) *ModelConfigResponse {
+	resp := &ModelConfigResponse{
+		ID:         mc.ID,
+		ProviderID: mc.ProviderID,
+		ModelName:  mc.ModelName,
+		Purpose:    mc.Purpose,
+		BaseURL:    mc.BaseURL,
+		IsActive:   mc.IsActive,
+		CreatedAt:  mc.CreatedAt,
+		UpdatedAt:  mc.UpdatedAt,
+	}
+
+	if mc.Provider != nil {
+		resp.Provider = &ModelProviderResponse{
+			ID:          mc.Provider.ID,
+			Name:        mc.Provider.Name,
+			DisplayName: mc.Provider.DisplayName,
+			BaseURL:     mc.Provider.BaseURL,
+			AuthType:    mc.Provider.AuthType,
+			IsActive:    mc.Provider.IsActive,
+		}
+	}
+
+	return resp
 }

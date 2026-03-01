@@ -85,11 +85,13 @@ func main() {
 	exportService := service.NewExportService(projectRepo, chapterRepo)
 	projectService := service.NewProjectService(projectRepo, chapterRepo, modelConfigRepo, llmManager, exportService)
 	chapterService := service.NewChapterService(projectRepo, chapterRepo, modelConfigRepo, llmManager)
+	modelConfigService := service.NewModelConfigService(modelConfigRepo, llmManager)
 
 	// 初始化处理器
 	deviceHandler := handler.NewDeviceHandler(deviceService)
 	projectHandler := handler.NewProjectHandler(projectService)
 	chapterHandler := handler.NewChapterHandler(chapterService, projectService)
+	modelConfigHandler := handler.NewModelConfigHandler(modelConfigService)
 
 	// 设置 Gin
 	if cfg.Server.Mode == "release" {
@@ -99,7 +101,7 @@ func main() {
 	r := gin.New()
 
 	// 设置路由
-	router.SetupRouter(r, deviceRepo, deviceHandler, projectHandler, chapterHandler)
+	router.SetupRouter(r, deviceRepo, deviceHandler, projectHandler, chapterHandler, modelConfigHandler)
 
 	// 启动服务器
 	srv := &http.Server{
@@ -158,6 +160,78 @@ func autoMigrate(db *gorm.DB) error {
 		return fmt.Errorf("数据库迁移失败: %w", err)
 	}
 
+	// 初始化默认提供商
+	if err := initDefaultProviders(db); err != nil {
+		logger.Warn("初始化默认提供商失败", zap.Error(err))
+	}
+
 	logger.Info("数据库迁移完成")
+	return nil
+}
+
+// initDefaultProviders 初始化默认的模型提供商
+func initDefaultProviders(db *gorm.DB) error {
+	providers := []model.ModelProvider{
+		{
+			ID:          1,
+			Name:        "openai",
+			DisplayName: "OpenAI",
+			BaseURL:     "https://api.openai.com/v1",
+			AuthType:    "api_key",
+			IsActive:    true,
+		},
+		{
+			ID:          2,
+			Name:        "anthropic",
+			DisplayName: "Anthropic (Claude)",
+			BaseURL:     "https://api.anthropic.com/v1",
+			AuthType:    "api_key",
+			IsActive:    true,
+		},
+		{
+			ID:          3,
+			Name:        "deepseek",
+			DisplayName: "DeepSeek",
+			BaseURL:     "https://api.deepseek.com/v1",
+			AuthType:    "api_key",
+			IsActive:    true,
+		},
+		{
+			ID:          4,
+			Name:        "qwen",
+			DisplayName: "通义千问",
+			BaseURL:     "https://dashscope.aliyuncs.com/compatible-mode/v1",
+			AuthType:    "api_key",
+			IsActive:    true,
+		},
+		{
+			ID:          5,
+			Name:        "zhipu",
+			DisplayName: "智谱 GLM",
+			BaseURL:     "https://open.bigmodel.cn/api/paas/v4",
+			AuthType:    "api_key",
+			IsActive:    true,
+		},
+		{
+			ID:          6,
+			Name:        "custom",
+			DisplayName: "自定义 OpenAI 兼容",
+			BaseURL:     "",
+			AuthType:    "api_key",
+			IsActive:    true,
+		},
+	}
+
+	for _, provider := range providers {
+		// 使用 FirstOrCreate 避免重复插入
+		result := db.Where("name = ?", provider.Name).FirstOrCreate(&provider)
+		if result.Error != nil {
+			logger.Warn("创建提供商失败",
+				zap.String("name", provider.Name),
+				zap.Error(result.Error),
+			)
+		}
+	}
+
 	return nil
 }
