@@ -43,30 +43,40 @@ function BlueprintPanel({ project }: BlueprintPanelProps) {
 
   // 生成大纲
   const generateMutation = useMutation({
-    mutationFn: (overwrite: boolean) =>
-      projectApi.generateBlueprint(project.id, { overwrite }),
-    onSuccess: () => {
+    mutationFn: (overwrite: boolean) => {
+      console.log('generateBlueprintMutation called', { projectId: project.id, overwrite });
+      return projectApi.generateBlueprint(project.id, { overwrite });
+    },
+    onSuccess: (data) => {
+      console.log('generateBlueprintMutation onSuccess', data);
       message.success('大纲生成成功');
       queryClient.invalidateQueries({ queryKey: ['project', project.id] });
       setGenerating(false);
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('generateBlueprintMutation onError', error);
       message.error('大纲生成失败');
       setGenerating(false);
     },
   });
 
   const handleGenerate = () => {
+    console.log('handleGenerate (blueprint) called', {
+      blueprint_generated: project.blueprint_generated,
+      projectId: project.id,
+    });
     if (project.blueprint_generated) {
       modal.confirm({
         title: '重新生成',
         content: '大纲已生成，确定要重新生成吗？当前内容将被覆盖。',
         onOk: () => {
+          console.log('User confirmed blueprint regenerate');
           setGenerating(true);
           generateMutation.mutate(true);
         },
       });
     } else {
+      console.log('Starting first blueprint generation');
       setGenerating(true);
       generateMutation.mutate(false);
     }
