@@ -16,7 +16,12 @@ function ProjectDetail() {
   // 获取项目详情
   const { data: projectRes, isLoading } = useQuery({
     queryKey: ['project', id],
-    queryFn: () => projectApi.getById(id!).then((res) => res.data.data),
+    queryFn: () => projectApi.getById(id!).then((res) => {
+      if (!res?.data) {
+        throw new Error(res?.message || '获取项目失败');
+      }
+      return res.data;
+    }),
     enabled: !!id,
   });
 
@@ -26,6 +31,9 @@ function ProjectDetail() {
   const handleExport = async (format: 'txt' | 'md') => {
     try {
       const res = await projectApi.export(id!, format);
+      if (!res?.data?.data?.download_url) {
+        throw new Error(res?.data?.message || '导出失败');
+      }
       const content = res.data.data.download_url;
 
       // 创建 Blob 并下载

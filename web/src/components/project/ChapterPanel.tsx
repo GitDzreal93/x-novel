@@ -26,7 +26,12 @@ function ChapterPanel({ project }: ChapterPanelProps) {
   const { data: chaptersData, isLoading, refetch } = useQuery({
     queryKey: ['chapters', project.id, page],
     queryFn: () =>
-      chapterApi.list(project.id, { page, page_size: 20 }).then((res) => res.data.data),
+      chapterApi.list(project.id, { page, page_size: 20 }).then((res) => {
+        if (!res?.data) {
+          throw new Error(res?.message || '获取章节列表失败');
+        }
+        return res.data;
+      }),
     enabled: !!project.id,
   });
 
@@ -58,7 +63,9 @@ function ChapterPanel({ project }: ChapterPanelProps) {
       if (selectedChapter) {
         // 重新获取章节详情
         chapterApi.getByNumber(project.id, selectedChapter.chapter_number).then((res) => {
-          setSelectedChapter(res.data.data);
+          if (res?.data?.data) {
+            setSelectedChapter(res.data.data);
+          }
         });
       }
     },
@@ -80,7 +87,9 @@ function ChapterPanel({ project }: ChapterPanelProps) {
       queryClient.invalidateQueries({ queryKey: ['chapters', project.id] });
       if (selectedChapter) {
         chapterApi.getByNumber(project.id, selectedChapter.chapter_number).then((res) => {
-          setSelectedChapter(res.data.data);
+          if (res?.data?.data) {
+            setSelectedChapter(res.data.data);
+          }
         });
       }
     },
@@ -98,7 +107,9 @@ function ChapterPanel({ project }: ChapterPanelProps) {
       queryClient.invalidateQueries({ queryKey: ['chapters', project.id] });
       if (selectedChapter) {
         chapterApi.getByNumber(project.id, selectedChapter.chapter_number).then((res) => {
-          setSelectedChapter(res.data.data);
+          if (res?.data?.data) {
+            setSelectedChapter(res.data.data);
+          }
         });
       }
     },
