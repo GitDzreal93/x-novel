@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Tabs, Button, Card, Spin, Space, Dropdown, message } from 'antd';
-import { ArrowLeftOutlined, DownloadOutlined, FileTextOutlined, MarkdownOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, DownloadOutlined, FileTextOutlined, FileOutlined } from '@ant-design/icons';
 import { projectApi } from '../api';
 import { useQuery } from '@tanstack/react-query';
 import ArchitecturePanel from '../components/project/ArchitecturePanel';
@@ -57,7 +57,7 @@ function ProjectDetail() {
     {
       key: 'md',
       label: '导出为 Markdown',
-      icon: <MarkdownOutlined />,
+      icon: <FileOutlined />,
       onClick: () => handleExport('md'),
     },
   ];
