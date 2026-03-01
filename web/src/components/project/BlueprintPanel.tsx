@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Form, Input, Modal, Space, App } from 'antd';
 import { PlayCircleOutlined, SaveOutlined } from '@ant-design/icons';
 import { projectApi } from '../../api';
@@ -16,6 +16,13 @@ function BlueprintPanel({ project }: BlueprintPanelProps) {
   const queryClient = useQueryClient();
   const [form] = Form.useForm();
   const [generating, setGenerating] = useState(false);
+
+  // 当 project 数据更新时，更新表单内容
+  useEffect(() => {
+    form.setFieldsValue({
+      chapter_blueprint: project.chapter_blueprint || '',
+    });
+  }, [project.chapter_blueprint, form]);
 
   // 更新项目
   const updateMutation = useMutation({

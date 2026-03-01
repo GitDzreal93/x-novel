@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Form, Input, Modal, Space, Collapse, App } from 'antd';
 import { PlayCircleOutlined, SaveOutlined } from '@ant-design/icons';
 import { projectApi } from '../../api';
@@ -16,6 +16,17 @@ function ArchitecturePanel({ project }: ArchitecturePanelProps) {
   const queryClient = useQueryClient();
   const [form] = Form.useForm();
   const [generating, setGenerating] = useState(false);
+
+  // 当 project 架构数据更新时，更新表单内容
+  useEffect(() => {
+    form.setFieldsValue({
+      core_seed: project.core_seed || '',
+      character_dynamics: project.character_dynamics || '',
+      world_building: project.world_building || '',
+      plot_architecture: project.plot_architecture || '',
+      character_state: project.character_state || '',
+    });
+  }, [project.core_seed, project.character_dynamics, project.world_building, project.plot_architecture, project.character_state, form]);
 
   // 更新项目
   const updateMutation = useMutation({
