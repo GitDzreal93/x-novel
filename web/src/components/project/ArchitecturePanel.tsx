@@ -19,10 +19,6 @@ function ArchitecturePanel({ project }: ArchitecturePanelProps) {
 
   // 当 project 架构数据更新时，更新表单内容
   useEffect(() => {
-    console.log('ArchitecturePanel: project data updated', {
-      core_seed: project.core_seed?.substring(0, 50) || 'empty',
-      hasData: !!project.core_seed,
-    });
     form.setFieldsValue({
       core_seed: project.core_seed || '',
       character_dynamics: project.character_dynamics || '',
@@ -47,40 +43,30 @@ function ArchitecturePanel({ project }: ArchitecturePanelProps) {
 
   // 生成架构
   const generateMutation = useMutation({
-    mutationFn: (overwrite: boolean) => {
-      console.log('generateMutation called', { projectId: project.id, overwrite });
-      return projectApi.generateArchitecture(project.id, { overwrite });
-    },
-    onSuccess: (data) => {
-      console.log('generateMutation onSuccess', data);
+    mutationFn: (overwrite: boolean) =>
+      projectApi.generateArchitecture(project.id, { overwrite }),
+    onSuccess: () => {
       message.success('架构生成成功');
       queryClient.invalidateQueries({ queryKey: ['project', project.id] });
       setGenerating(false);
     },
-    onError: (error) => {
-      console.error('generateMutation onError', error);
+    onError: () => {
       message.error('架构生成失败');
       setGenerating(false);
     },
   });
 
   const handleGenerate = () => {
-    console.log('handleGenerate called', {
-      architecture_generated: project.architecture_generated,
-      projectId: project.id,
-    });
     if (project.architecture_generated) {
       modal.confirm({
         title: '重新生成',
         content: '架构已生成，确定要重新生成吗？当前内容将被覆盖。',
         onOk: () => {
-          console.log('User confirmed regenerate');
           setGenerating(true);
           generateMutation.mutate(true);
         },
       });
     } else {
-      console.log('Starting first generation');
       setGenerating(true);
       generateMutation.mutate(false);
     }

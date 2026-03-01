@@ -18,7 +18,6 @@ function ProjectDetail() {
   const { data: projectRes, isLoading, error } = useQuery({
     queryKey: ['project', id],
     queryFn: () => projectApi.getById(id!).then((res) => {
-      console.log('Project API Response:', res);
       if (!res?.data) {
         throw new Error(res?.message || '获取项目失败');
       }
@@ -26,14 +25,6 @@ function ProjectDetail() {
     }),
     enabled: !!id,
   });
-
-  if (error) {
-    console.error('Project query error:', error);
-  }
-
-  if (projectRes) {
-    console.log('Project data loaded:', projectRes);
-  }
 
   const project = projectRes;
 
@@ -101,18 +92,18 @@ function ProjectDetail() {
     {
       key: 'architecture',
       label: '小说架构',
-      children: <ArchitecturePanel project={project} />,
+      children: <ArchitecturePanel key={`arch-${project.updated_at}`} project={project} />,
     },
     {
       key: 'blueprint',
       label: '章节大纲',
-      children: <BlueprintPanel project={project} />,
+      children: <BlueprintPanel key={`blueprint-${project.updated_at}`} project={project} />,
       disabled: !project.architecture_generated,
     },
     {
       key: 'chapters',
       label: '章节写作',
-      children: <ChapterPanel project={project} />,
+      children: <ChapterPanel key={`chapters-${project.updated_at}`} project={project} />,
       disabled: !project.blueprint_generated,
     },
   ];
