@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 
 	"github.com/spf13/viper"
 )
@@ -47,14 +49,19 @@ func Load(configPath string) (*Config, error) {
 	viper.SetConfigFile(configPath)
 	viper.SetConfigType("yaml")
 
-	// 设置默认值
 	setDefaults()
 
-	// 读取环境变量
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("读取配置文件失败: %w", err)
+		// 配置文件不存在时仅使用默认值和环境变量
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			if _, statErr := os.Stat(configPath); os.IsNotExist(statErr) {
+				// 文件不存在，使用默认值
+			} else {
+				return nil, fmt.Errorf("读取配置文件失败: %w", err)
+			}
+		}
 	}
 
 	var config Config
@@ -62,16 +69,55 @@ func Load(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("解析配置失败: %w", err)
 	}
 
+	// 环境变量覆盖（Docker 场景）
+	applyEnvOverrides(&config)
+
 	return &config, nil
 }
 
+// applyEnvOverrides 支持 Docker 等场景通过环境变量覆盖配置
+func applyEnvOverrides(c *Config) {
+	if v := os.Getenv("SERVER_PORT"); v != "" {
+		if port, err := strconv.Atoi(v); err == nil {
+			c.Server.Port = port
+		}
+	}
+	if v := os.Getenv("SERVER_MODE"); v != "" {
+		c.Server.Mode = v
+	}
+	if v := os.Getenv("DB_HOST"); v != "" {
+		c.Database.Host = v
+	}
+	if v := os.Getenv("DB_PORT"); v != "" {
+		if port, err := strconv.Atoi(v); err == nil {
+			c.Database.Port = port
+		}
+	}
+	if v := os.Getenv("DB_USER"); v != "" {
+		c.Database.User = v
+	}
+	if v := os.Getenv("DB_PASSWORD"); v != "" {
+		c.Database.Password = v
+	}
+	if v := os.Getenv("DB_NAME"); v != "" {
+		c.Database.DBName = v
+	}
+	if v := os.Getenv("DB_SSLMODE"); v != "" {
+		c.Database.SSLMode = v
+	}
+	if v := os.Getenv("LOG_LEVEL"); v != "" {
+		c.Logger.Level = v
+	}
+	if v := os.Getenv("LOG_FORMAT"); v != "" {
+		c.Logger.Format = v
+	}
+}
+
 func setDefaults() {
-	// Server 默认值
 	viper.SetDefault("server.port", 8080)
 	viper.SetDefault("server.mode", "debug")
 	viper.SetDefault("server.host", "0.0.0.0")
 
-	// Database 默认值
 	viper.SetDefault("database.host", "localhost")
 	viper.SetDefault("database.port", 5432)
 	viper.SetDefault("database.user", "postgres")
@@ -79,11 +125,9 @@ func setDefaults() {
 	viper.SetDefault("database.dbname", "x_novel")
 	viper.SetDefault("database.sslmode", "disable")
 
-	// Logger 默认值
 	viper.SetDefault("logger.level", "info")
 	viper.SetDefault("logger.format", "console")
 
-	// LLM 默认值
 	viper.SetDefault("llm.default_provider", "openai")
 }
 

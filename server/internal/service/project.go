@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"x-novel/internal/dto"
@@ -491,19 +492,103 @@ func (s *ProjectService) GenerateBlueprint(ctx context.Context, deviceID uuid.UU
 		zap.String("project_id", projectID),
 	)
 
-	// 获取用于大纲生成的模型配置
+	// 获取用于大纲生成的模型配置（尝试 blueprint 或 architecture）
 	modelConfig, err := s.modelRepo.GetByPurpose(ctx, deviceID.String(), "blueprint")
 	if err != nil {
-		logger.Error("获取大纲生成模型配置失败", zap.Error(err))
-
-		// 开发模式：返回模拟数据
-		logger.Info("使用模拟模式生成章节大纲")
-		return s.generateMockBlueprint(ctx, project)
+		modelConfig, err = s.modelRepo.GetByPurpose(ctx, deviceID.String(), "architecture")
+		if err != nil {
+			logger.Error("获取大纲生成模型配置失败", zap.Error(err))
+			logger.Info("使用模拟模式生成章节大纲")
+			return s.generateMockBlueprint(ctx, project)
+		}
 	}
 
-	// TODO: 实现真实的 LLM 调用生成大纲
-	_ = modelConfig
-	return nil, errors.New("大纲生成功能待实现")
+	params := BlueprintPromptParams{
+		UserGuidance:      project.UserGuidance,
+		CoreSeed:          project.CoreSeed,
+		CharacterDynamics: project.CharacterDynamics,
+		WorldBuilding:     project.WorldBuilding,
+		PlotArchitecture:  project.PlotArchitecture,
+		ChapterCount:      project.ChapterCount,
+	}
+
+	const chunkSize = 20
+	var fullBlueprint string
+
+	if project.ChapterCount <= chunkSize {
+		prompt := BuildBlueprintPrompt(params)
+		result, err := s.callLLM(ctx, modelConfig, prompt)
+		if err != nil {
+			logger.Error("LLM 大纲生成失败，回退到模拟模式", zap.Error(err))
+			return s.generateMockBlueprint(ctx, project)
+		}
+		fullBlueprint = result
+	} else {
+		totalChunks := (project.ChapterCount + chunkSize - 1) / chunkSize
+		var parts []string
+
+		for chunk := 0; chunk < totalChunks; chunk++ {
+			start := chunk*chunkSize + 1
+			end := (chunk + 1) * chunkSize
+			if end > project.ChapterCount {
+				end = project.ChapterCount
+			}
+
+			logger.Info("分块生成大纲",
+				zap.Int("chunk", chunk+1),
+				zap.Int("total_chunks", totalChunks),
+				zap.Int("start", start),
+				zap.Int("end", end),
+			)
+
+			prompt := BuildChunkedBlueprintPrompt(params, start, end, strings.Join(parts, "\n\n"))
+			result, err := s.callLLM(ctx, modelConfig, prompt)
+			if err != nil {
+				logger.Error("分块大纲生成失败，回退到模拟模式",
+					zap.Int("chunk", chunk+1),
+					zap.Error(err),
+				)
+				return s.generateMockBlueprint(ctx, project)
+			}
+			parts = append(parts, strings.TrimSpace(result))
+		}
+		fullBlueprint = strings.Join(parts, "\n\n")
+	}
+
+	project.ChapterBlueprint = fullBlueprint
+	project.BlueprintGenerated = true
+	project.UpdatedAt = time.Now()
+
+	if err := s.projectRepo.Update(ctx, project); err != nil {
+		return nil, err
+	}
+
+	logger.Info("章节大纲生成完成",
+		zap.String("project_id", project.ID.String()),
+		zap.Int("chapter_count", project.ChapterCount),
+	)
+	return project, nil
+}
+
+// callLLM 调用大模型
+func (s *ProjectService) callLLM(ctx context.Context, modelConfig *model.ModelConfig, prompt string) (string, error) {
+	messages := []llm.ChatMessage{
+		{Role: "user", Content: prompt},
+	}
+	options := llm.ChatOptions{
+		Temperature: 0.7,
+		MaxTokens:   4096,
+		APIKey:      modelConfig.APIKey,
+	}
+	if modelConfig.BaseURL != "" {
+		adapter := llm.NewOpenAIAdapter(modelConfig.BaseURL, modelConfig.ModelName)
+		return adapter.ChatCompletion(ctx, messages, options)
+	}
+	provider := "openai"
+	if modelConfig.Provider != nil {
+		provider = modelConfig.Provider.Name
+	}
+	return s.llmManager.ChatCompletion(ctx, provider, messages, options)
 }
 
 // generateMockBlueprint 生成模拟章节大纲（用于开发测试）

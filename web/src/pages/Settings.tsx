@@ -1,19 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
-  Card,
-  Form,
-  Input,
-  Select,
-  Button,
-  Table,
-  Modal,
-  Space,
-  Tag,
-  Switch,
-  Popconfirm,
-  Divider,
-  App,
-  Tabs,
+  Form, Input, Select, Button, Table, Modal, Space, Tag, Switch,
+  Popconfirm, App, Tabs, Typography, Card, Flex, theme, Statistic,
+  Upload, Spin, Result,
 } from 'antd';
 import {
   PlusOutlined,
@@ -22,13 +11,21 @@ import {
   CheckCircleOutlined,
   ApiOutlined,
   SettingOutlined,
+  KeyOutlined,
+  CloudDownloadOutlined,
+  CloudUploadOutlined,
+  DatabaseOutlined,
+  FileTextOutlined,
+  MessageOutlined,
+  BookOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { modelConfigApi } from '../api';
+import { modelConfigApi, backupApi } from '../api';
 import { useAppStore } from '../stores';
-import type { ModelConfig, ModelProvider, CreateModelConfigRequest } from '../types';
+import type { ModelConfig, ModelProvider, CreateModelConfigRequest, ImportResult } from '../types';
 
-// 用途选项
+const { Title, Text } = Typography;
+
 const PURPOSE_OPTIONS = [
   { label: '架构生成', value: 'architecture' },
   { label: '章节生成', value: 'chapter' },
@@ -37,7 +34,6 @@ const PURPOSE_OPTIONS = [
   { label: '通用', value: 'general' },
 ];
 
-// 常用模型选项
 const MODEL_OPTIONS: Record<string, string[]> = {
   openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
   anthropic: ['claude-3-5-sonnet-20241022', 'claude-3-opus-20240229', 'claude-3-haiku-20240307'],
@@ -50,27 +46,25 @@ const MODEL_OPTIONS: Record<string, string[]> = {
 function Settings() {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
-  const { theme, toggleTheme } = useAppStore();
+  const { theme: appTheme, toggleTheme } = useAppStore();
+  const { token } = theme.useToken();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingConfig, setEditingConfig] = useState<ModelConfig | null>(null);
   const [form] = Form.useForm();
   const [selectedProvider, setSelectedProvider] = useState<number | null>(null);
 
-  // 获取提供商列表
   const { data: providersRes } = useQuery({
     queryKey: ['model-providers'],
-    queryFn: () => modelConfigApi.listProviders().then((res) => res.data?.data || []),
+    queryFn: () => modelConfigApi.listProviders().then((res) => res.data || []),
   });
   const providers = providersRes || [];
 
-  // 获取模型配置列表
   const { data: configsRes, isLoading } = useQuery({
     queryKey: ['model-configs'],
-    queryFn: () => modelConfigApi.list({ page: 1, page_size: 100 }).then((res) => res.data?.data),
+    queryFn: () => modelConfigApi.list({ page: 1, page_size: 100 }).then((res) => res.data),
   });
   const configs = configsRes?.configs || [];
 
-  // 创建模型配置
   const createMutation = useMutation({
     mutationFn: (data: CreateModelConfigRequest) => modelConfigApi.create(data),
     onSuccess: () => {
@@ -84,7 +78,6 @@ function Settings() {
     },
   });
 
-  // 更新模型配置
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => modelConfigApi.update(id, data),
     onSuccess: () => {
@@ -99,7 +92,6 @@ function Settings() {
     },
   });
 
-  // 删除模型配置
   const deleteMutation = useMutation({
     mutationFn: (id: string) => modelConfigApi.delete(id),
     onSuccess: () => {
@@ -111,7 +103,6 @@ function Settings() {
     },
   });
 
-  // 验证模型配置
   const validateMutation = useMutation({
     mutationFn: modelConfigApi.validate,
     onSuccess: () => {
@@ -125,10 +116,7 @@ function Settings() {
   const handleSubmit = () => {
     form.validateFields().then((values) => {
       if (editingConfig) {
-        updateMutation.mutate({
-          id: editingConfig.id,
-          data: values,
-        });
+        updateMutation.mutate({ id: editingConfig.id, data: values });
       } else {
         createMutation.mutate(values);
       }
@@ -176,7 +164,11 @@ function Settings() {
       review: 'AI 审阅',
       general: '通用',
     };
-    return <Tag color={colors[purpose]}>{labels[purpose] || purpose}</Tag>;
+    return (
+      <Tag color={colors[purpose]} bordered={false}>
+        {labels[purpose] || purpose}
+      </Tag>
+    );
   };
 
   const columns = [
@@ -184,12 +176,17 @@ function Settings() {
       title: '提供商',
       dataIndex: ['provider', 'display_name'],
       key: 'provider',
-      render: (_: any, record: ModelConfig) => record.provider?.display_name || '-',
+      render: (_: any, record: ModelConfig) => (
+        <Text strong>{record.provider?.display_name || '-'}</Text>
+      ),
     },
     {
       title: '模型',
       dataIndex: 'model_name',
       key: 'model_name',
+      render: (text: string) => (
+        <Text type="secondary" code style={{ fontSize: 13 }}>{text}</Text>
+      ),
     },
     {
       title: '用途',
@@ -201,32 +198,32 @@ function Settings() {
       title: '状态',
       dataIndex: 'is_active',
       key: 'is_active',
-      render: (isActive: boolean) => (
+      render: (isActive: boolean) =>
         isActive ? (
-          <Tag icon={<CheckCircleOutlined />} color="success">启用</Tag>
+          <Tag icon={<CheckCircleOutlined />} color="success" bordered={false}>
+            已启用
+          </Tag>
         ) : (
-          <Tag color="default">禁用</Tag>
-        )
-      ),
+          <Tag color="default" bordered={false}>已禁用</Tag>
+        ),
     },
     {
       title: '操作',
       key: 'action',
       render: (_: any, record: ModelConfig) => (
-        <Space>
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
+        <Space size="middle">
+          <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
             编辑
           </Button>
           <Popconfirm
-            title="确定要删除这个配置吗？"
+            title="删除配置"
+            description="确定要删除这个模型配置吗？"
+            okText="确定"
+            cancelText="取消"
             onConfirm={() => deleteMutation.mutate(record.id)}
+            okButtonProps={{ danger: true }}
           >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+            <Button type="text" size="small" danger icon={<DeleteOutlined />}>
               删除
             </Button>
           </Popconfirm>
@@ -235,26 +232,35 @@ function Settings() {
     },
   ];
 
-  const selectedProviderName = providers.find((p) => p.id === selectedProvider)?.name;
+  const selectedProviderName = providers.find((p: ModelProvider) => p.id === selectedProvider)?.name;
   const modelOptions = selectedProviderName ? MODEL_OPTIONS[selectedProviderName] || [] : [];
 
   const tabItems = [
     {
       key: 'models',
       label: (
-        <span>
+        <Flex align="center" gap={6}>
           <ApiOutlined />
           模型配置
-        </span>
+        </Flex>
       ),
       children: (
-        <div>
-          <div className="flex justify-between items-center mb-4">
+        <div style={{ padding: '8px 0' }}>
+          <Flex
+            justify="space-between"
+            align="center"
+            wrap
+            gap={16}
+            style={{ marginBottom: 20 }}
+          >
             <div>
-              <h3 className="text-lg font-semibold">模型配置</h3>
-              <p className="text-gray-500 text-sm">
-                配置不同用途的 AI 模型，支持多个提供商
-              </p>
+              <Flex align="center" gap={8}>
+                <Title level={5} style={{ margin: 0 }}>AI 大模型配置</Title>
+                <KeyOutlined style={{ color: token.colorPrimary }} />
+              </Flex>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                为不同的创作环节配置专属的 AI 模型，支持多个提供商
+              </Text>
             </div>
             <Button
               type="primary"
@@ -265,10 +271,11 @@ function Settings() {
                 setSelectedProvider(null);
                 setModalOpen(true);
               }}
+              size="large"
             >
               添加配置
             </Button>
-          </div>
+          </Flex>
 
           <Table
             columns={columns}
@@ -276,58 +283,109 @@ function Settings() {
             rowKey="id"
             loading={isLoading}
             pagination={false}
+            locale={{
+              emptyText: (
+                <div style={{ padding: '48px 0' }}>
+                  <ApiOutlined style={{ fontSize: 36, color: token.colorTextQuaternary, marginBottom: 12, display: 'block' }} />
+                  <Text strong>还没有配置任何模型</Text>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: 13 }}>
+                    添加模型配置后，AI 创作功能才能正常使用
+                  </Text>
+                </div>
+              ),
+            }}
           />
-
-          {configs.length === 0 && !isLoading && (
-            <div className="text-center py-8 text-gray-500">
-              <p className="mb-4">还没有配置任何模型</p>
-              <p className="text-sm">添加模型配置后，AI 功能才能正常使用</p>
-            </div>
-          )}
         </div>
       ),
     },
     {
+      key: 'backup',
+      label: (
+        <Flex align="center" gap={6}>
+          <DatabaseOutlined />
+          数据管理
+        </Flex>
+      ),
+      children: <BackupTab />,
+    },
+    {
       key: 'general',
       label: (
-        <span>
+        <Flex align="center" gap={6}>
           <SettingOutlined />
           通用设置
-        </span>
+        </Flex>
       ),
       children: (
-        <div className="max-w-xl">
-          <h3 className="text-lg font-semibold mb-4">通用设置</h3>
-          
-          <div className="space-y-6">
-            <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div>
-                <div className="font-medium">深色模式</div>
-                <div className="text-gray-500 text-sm">切换应用的显示主题</div>
-              </div>
-              <Switch
-                checked={theme === 'dark'}
-                onChange={toggleTheme}
-              />
-            </div>
-
-            <Divider />
-
-            <div className="text-gray-500 text-sm">
-              <p>更多设置选项即将推出...</p>
-            </div>
+        <div style={{ maxWidth: 640, padding: '8px 0' }}>
+          <div style={{ marginBottom: 20 }}>
+            <Title level={5} style={{ margin: 0 }}>系统偏好</Title>
+            <Text type="secondary" style={{ fontSize: 13 }}>自定义你的使用体验</Text>
           </div>
+
+          <Flex vertical gap={12}>
+            <Flex
+              justify="space-between"
+              align="center"
+              style={{
+                padding: 20,
+                background: token.colorBgLayout,
+                border: `1px solid ${token.colorBorderSecondary}`,
+                borderRadius: token.borderRadius,
+              }}
+            >
+              <div>
+                <Text strong>深色模式</Text>
+                <br />
+                <Text type="secondary" style={{ fontSize: 13 }}>切换应用的显示主题外观</Text>
+              </div>
+              <Switch checked={appTheme === 'dark'} onChange={toggleTheme} />
+            </Flex>
+
+            <Flex
+              justify="space-between"
+              align="center"
+              style={{
+                padding: 20,
+                background: token.colorBgLayout,
+                border: `1px solid ${token.colorBorderSecondary}`,
+                borderRadius: token.borderRadius,
+                opacity: 0.5,
+                cursor: 'not-allowed',
+              }}
+            >
+              <div>
+                <Flex align="center" gap={8}>
+                  <Text strong>自动保存</Text>
+                  <Tag color="blue" bordered={false} style={{ fontSize: 11 }}>即将推出</Tag>
+                </Flex>
+                <Text type="secondary" style={{ fontSize: 13 }}>写作内容自动保存的间隔时间</Text>
+              </div>
+              <Switch disabled />
+            </Flex>
+          </Flex>
         </div>
       ),
     },
   ];
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">设置</h2>
+    <>
+      <div style={{ marginBottom: 24 }}>
+        <Title level={4} style={{ margin: 0 }}>系统设置</Title>
+      </div>
 
-      <Card>
-        <Tabs items={tabItems} />
+      <Card styles={{ body: { padding: 0 } }}>
+        <Tabs
+          items={tabItems}
+          size="large"
+          tabBarStyle={{
+            padding: '0 24px',
+            marginBottom: 0,
+          }}
+          style={{ padding: '0 24px 24px' }}
+        />
       </Card>
 
       {/* 模型配置弹窗 */}
@@ -344,12 +402,8 @@ function Settings() {
             取消
           </Button>,
           !editingConfig && (
-            <Button
-              key="validate"
-              onClick={handleValidate}
-              loading={validateMutation.isPending}
-            >
-              验证 API
+            <Button key="validate" onClick={handleValidate} loading={validateMutation.isPending}>
+              测试连接
             </Button>
           ),
           <Button
@@ -358,23 +412,22 @@ function Settings() {
             onClick={handleSubmit}
             loading={createMutation.isPending || updateMutation.isPending}
           >
-            {editingConfig ? '保存' : '创建'}
+            {editingConfig ? '保存修改' : '确认创建'}
           </Button>,
         ].filter(Boolean)}
-        width={600}
+        width={580}
+        centered
       >
-        <Form form={form} layout="vertical" className="mt-4">
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item
             name="provider_id"
-            label="提供商"
+            label="AI 提供商"
             rules={[{ required: true, message: '请选择提供商' }]}
           >
             <Select
-              placeholder="选择 AI 提供商"
-              options={providers.map((p) => ({
-                label: p.display_name,
-                value: p.id,
-              }))}
+              size="large"
+              placeholder="选择 AI 服务提供商"
+              options={providers.map((p: ModelProvider) => ({ label: p.display_name, value: p.id }))}
               onChange={(value) => {
                 setSelectedProvider(value);
                 form.setFieldValue('model_name', undefined);
@@ -389,57 +442,278 @@ function Settings() {
           >
             {modelOptions.length > 0 ? (
               <Select
+                size="large"
                 placeholder="选择或输入模型名称"
                 showSearch
                 allowClear
                 options={modelOptions.map((m) => ({ label: m, value: m }))}
               />
             ) : (
-              <Input placeholder="输入模型名称，如 gpt-4o" />
+              <Input size="large" placeholder="输入模型名称，如 gpt-4o" />
             )}
           </Form.Item>
 
           <Form.Item
             name="purpose"
-            label="用途"
+            label="使用场景"
             rules={[{ required: true, message: '请选择用途' }]}
           >
-            <Select
-              placeholder="选择此配置的用途"
-              options={PURPOSE_OPTIONS}
-            />
+            <Select size="large" placeholder="选择此模型配置的具体用途" options={PURPOSE_OPTIONS} />
           </Form.Item>
 
           <Form.Item
             name="api_key"
             label="API Key"
             rules={[{ required: !editingConfig, message: '请输入 API Key' }]}
-            extra={editingConfig ? '留空表示不修改' : undefined}
+            extra={
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {editingConfig ? '留空表示不修改现有 Key' : '提供商分配的身份验证凭证'}
+              </Text>
+            }
           >
-            <Input.Password
-              placeholder={editingConfig ? '留空表示不修改' : '输入 API Key'}
-            />
+            <Input.Password size="large" placeholder={editingConfig ? '留空表示不修改' : 'sk-...'} />
           </Form.Item>
 
           <Form.Item
             name="base_url"
-            label="自定义 Base URL（可选）"
-            extra="如果使用代理或自定义端点，请填写完整的 API 地址"
+            label="自定义接口地址（可选）"
+            extra={
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                如果使用 API 代理或本地模型服务，请填写完整的 Base URL
+              </Text>
+            }
           >
-            <Input placeholder="例如: https://api.example.com/v1" />
+            <Input
+              size="large"
+              placeholder="例如: https://api.example.com/v1"
+              style={{ fontFamily: 'monospace', fontSize: 13 }}
+            />
           </Form.Item>
 
           {editingConfig && (
-            <Form.Item
-              name="is_active"
-              label="启用状态"
-              valuePropName="checked"
-            >
+            <Form.Item name="is_active" label="启用状态" valuePropName="checked">
               <Switch />
             </Form.Item>
           )}
         </Form>
       </Modal>
+    </>
+  );
+}
+
+function BackupTab() {
+  const { message: messageApi, modal } = App.useApp();
+  const { token } = theme.useToken();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+
+  const { data: preview, isLoading: previewLoading } = useQuery({
+    queryKey: ['backup-preview'],
+    queryFn: () => backupApi.preview().then((res) => res.data),
+  });
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await backupApi.exportData();
+      const blob = res instanceof Blob ? res : new Blob([JSON.stringify(res)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `x-novel-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      messageApi.success('数据导出成功');
+    } catch {
+      messageApi.error('导出失败，请稍后重试');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.json')) {
+      messageApi.error('请选择 JSON 格式的备份文件');
+      return;
+    }
+
+    modal.confirm({
+      title: '确认导入数据',
+      content: `将从文件 "${file.name}" 导入数据。导入的项目和对话将作为新数据添加，不会覆盖现有数据。`,
+      okText: '确认导入',
+      cancelText: '取消',
+      centered: true,
+      onOk: () => doImport(file),
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const doImport = async (file: File) => {
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const res = await backupApi.importData(file);
+      if (res?.data) {
+        setImportResult(res.data);
+        messageApi.success('数据导入完成');
+      }
+    } catch {
+      messageApi.error('导入失败，请检查文件格式');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: 800, padding: '8px 0' }}>
+      <div style={{ marginBottom: 20 }}>
+        <Title level={5} style={{ margin: 0 }}>数据管理</Title>
+        <Text type="secondary" style={{ fontSize: 13 }}>
+          导出和导入你的所有创作数据，支持跨设备迁移
+        </Text>
+      </div>
+
+      {/* 当前数据概览 */}
+      <Card title="当前数据概览" style={{ marginBottom: 20 }}>
+        {previewLoading ? (
+          <Flex justify="center" style={{ padding: 24 }}><Spin /></Flex>
+        ) : preview ? (
+          <Flex wrap gap={32}>
+            <Statistic
+              title={<Flex align="center" gap={4}><BookOutlined />项目</Flex>}
+              value={preview.projects}
+              suffix="个"
+            />
+            <Statistic
+              title={<Flex align="center" gap={4}><FileTextOutlined />章节</Flex>}
+              value={preview.chapters}
+              suffix="章"
+            />
+            <Statistic
+              title="总字数"
+              value={preview.total_words}
+              suffix="字"
+            />
+            <Statistic
+              title={<Flex align="center" gap={4}><MessageOutlined />对话</Flex>}
+              value={preview.conversations}
+              suffix="条"
+            />
+            <Statistic
+              title="消息"
+              value={preview.messages}
+              suffix="条"
+            />
+          </Flex>
+        ) : (
+          <Text type="secondary">暂无数据</Text>
+        )}
+      </Card>
+
+      {/* 导出 */}
+      <Card
+        style={{ marginBottom: 20 }}
+        styles={{ body: { padding: '20px 24px' } }}
+      >
+        <Flex justify="space-between" align="center">
+          <div>
+            <Flex align="center" gap={8} style={{ marginBottom: 4 }}>
+              <CloudDownloadOutlined style={{ color: token.colorPrimary, fontSize: 18 }} />
+              <Text strong style={{ fontSize: 15 }}>导出数据</Text>
+            </Flex>
+            <Text type="secondary" style={{ fontSize: 13 }}>
+              将所有项目、章节、对话数据导出为 JSON 文件
+            </Text>
+          </div>
+          <Button
+            type="primary"
+            icon={<CloudDownloadOutlined />}
+            onClick={handleExport}
+            loading={exporting}
+            size="large"
+          >
+            导出
+          </Button>
+        </Flex>
+      </Card>
+
+      {/* 导入 */}
+      <Card styles={{ body: { padding: '20px 24px' } }}>
+        <Flex justify="space-between" align="center" style={{ marginBottom: importResult ? 16 : 0 }}>
+          <div>
+            <Flex align="center" gap={8} style={{ marginBottom: 4 }}>
+              <CloudUploadOutlined style={{ color: '#52c41a', fontSize: 18 }} />
+              <Text strong style={{ fontSize: 15 }}>导入数据</Text>
+            </Flex>
+            <Text type="secondary" style={{ fontSize: 13 }}>
+              从 JSON 备份文件中恢复数据（不会覆盖现有数据）
+            </Text>
+          </div>
+          <Button
+            icon={<CloudUploadOutlined />}
+            onClick={handleImportClick}
+            loading={importing}
+            size="large"
+          >
+            选择文件
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
+        </Flex>
+
+        {importing && (
+          <Flex justify="center" style={{ padding: 24 }}>
+            <Spin tip="正在导入数据..." />
+          </Flex>
+        )}
+
+        {importResult && (
+          <Result
+            status="success"
+            title="导入完成"
+            subTitle={
+              <Flex vertical gap={4} style={{ textAlign: 'left', display: 'inline-block' }}>
+                <Text>导入项目：{importResult.imported_projects} 个</Text>
+                <Text>导入章节：{importResult.imported_chapters} 章</Text>
+                <Text>导入对话：{importResult.imported_conversations} 条</Text>
+                <Text>导入消息：{importResult.imported_messages} 条</Text>
+                {(importResult.failed_projects > 0 || importResult.failed_chapters > 0) && (
+                  <Text type="danger">
+                    失败：{importResult.failed_projects} 项目 / {importResult.failed_chapters} 章节
+                  </Text>
+                )}
+              </Flex>
+            }
+            extra={
+              <Button onClick={() => setImportResult(null)}>关闭</Button>
+            }
+            style={{
+              padding: '16px 0',
+              background: token.colorBgLayout,
+              borderRadius: token.borderRadius,
+            }}
+          />
+        )}
+      </Card>
     </div>
   );
 }

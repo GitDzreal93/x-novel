@@ -119,6 +119,54 @@ type ValidateModelConfigRequest struct {
 	BaseURL    string `json:"base_url"`
 }
 
+// ========== 写作助手相关 ==========
+
+// WritingAssistantRequest 写作助手请求
+type WritingAssistantRequest struct {
+	Action      string `json:"action" binding:"required,oneof=polish continue suggestion"`
+	Content     string `json:"content" binding:"required"`
+	ProjectID   string `json:"project_id"`
+	Style       string `json:"style"`        // polish: vivid/concise/literary/dramatic
+	TargetWords int    `json:"target_words"`  // continue: 目标字数
+	Aspect      string `json:"aspect"`        // suggestion: plot/character/dialogue/description/conflict
+	Stream      bool   `json:"stream"`
+}
+
+// ========== 对话相关 ==========
+
+// CreateConversationRequest 创建对话请求
+type CreateConversationRequest struct {
+	Title     string `json:"title"`
+	Mode      string `json:"mode"`
+	ProjectID string `json:"project_id"`
+}
+
+// SendMessageRequest 发送消息请求
+type SendMessageRequest struct {
+	Content string `json:"content" binding:"required"`
+	Stream  bool   `json:"stream"`
+}
+
+// UpdateConversationRequest 更新对话请求
+type UpdateConversationRequest struct {
+	Title string `json:"title" binding:"required"`
+}
+
+// ========== 错误检测相关 ==========
+
+// DetectErrorsRequest 错误检测请求
+type DetectErrorsRequest struct {
+	Content string   `json:"content" binding:"required"`
+	Types   []string `json:"types"` // typo, grammar, logic, repetition
+}
+
+// ========== AI 审阅相关 ==========
+
+// ReviewChapterRequest 章节审阅请求
+type ReviewChapterRequest struct {
+	ChapterNumber int `json:"chapter_number" binding:"required"`
+}
+
 // ========== 设备相关 ==========
 
 // UpdateDeviceSettingsRequest 更新设备设置请求

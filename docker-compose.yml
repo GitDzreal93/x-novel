@@ -1,52 +1,62 @@
 version: '3.8'
 
 services:
-  # PostgreSQL 数据库
   postgres:
     image: postgres:15-alpine
     container_name: x-novel-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: x_novel
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-x_novel}
     ports:
-      - "5432:5432"
+      - "${DB_PORT_EXTERNAL:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - x-novel-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  # 后端服务
   server:
     build:
       context: ./server
       dockerfile: Dockerfile
     container_name: x-novel-server
     environment:
+      SERVER_PORT: "8080"
+      SERVER_MODE: "release"
       DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: x_novel
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-x_novel}
+      DB_SSLMODE: "disable"
+      LOG_LEVEL: "info"
+      LOG_FORMAT: "json"
     ports:
-      - "8080:8080"
+      - "${SERVER_PORT_EXTERNAL:-8080}:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - x-novel-network
+    restart: unless-stopped
 
-  # 前端应用
   web:
     build:
       context: ./web
       dockerfile: Dockerfile
     container_name: x-novel-web
     ports:
-      - "80:80"
+      - "${WEB_PORT:-80}:80"
     depends_on:
       - server
     networks:
       - x-novel-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:

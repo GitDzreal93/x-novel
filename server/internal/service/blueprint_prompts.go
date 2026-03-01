@@ -75,6 +75,80 @@ func BuildBlueprintPrompt(params BlueprintPromptParams) string {
 		userGuidance, novelArchitecture, params.ChapterCount, params.ChapterCount)
 }
 
+// BuildChunkedBlueprintPrompt 构建分块大纲提示词（用于长篇小说分批生成）
+func BuildChunkedBlueprintPrompt(params BlueprintPromptParams, startChapter, endChapter int, previousBlueprint string) string {
+	novelArchitecture := fmt.Sprintf(`核心种子：%s
+
+角色动力学：
+%s
+
+世界观：
+%s
+
+情节架构：
+%s`,
+		params.CoreSeed,
+		params.CharacterDynamics,
+		params.WorldBuilding,
+		params.PlotArchitecture)
+
+	userGuidance := params.UserGuidance
+	if userGuidance == "" {
+		userGuidance = "无"
+	}
+
+	previousContext := ""
+	if previousBlueprint != "" {
+		// 只取最近 10 章的摘要作为上下文
+		lines := strings.Split(previousBlueprint, "\n")
+		contextLines := lines
+		if len(lines) > 70 {
+			contextLines = lines[len(lines)-70:]
+		}
+		previousContext = fmt.Sprintf(`
+
+## 已生成的前文大纲（请保持连贯性）
+%s`, strings.Join(contextLines, "\n"))
+	}
+
+	return fmt.Sprintf(`基于以下元素：
+- 内容指导：%s
+- 小说架构：
+%s
+- 全书共计 %d 章
+%s
+
+请为第 %d 章到第 %d 章设计详细的章节大纲。
+
+设计要求：
+1. 章节集群划分：每3-5章构成一个情节单元，包含完整的小高潮
+2. 每章需明确：
+   - 章节定位（角色/事件/主题等）
+   - 核心内容（剧情推进/情感发展/角色成长等）
+   - 情感基调
+   - 伏笔操作（埋设/强化/回收）
+   - 情节张力（★☆☆☆☆ 到 ★★★★★）
+
+输出格式（每章）：
+第n章 - [标题]
+本章定位：[角色/事件/主题/...]
+核心作用：[推进/转折/发展/升温/...]
+情感强度：[平缓/渐进/高潮/...]
+伏笔操作：埋设(A线索)→强化(B关系)...
+情节张力：★☆☆☆☆
+本章简述：[一句话概括]
+
+要求：
+- 使用精炼语言描述，每章字数控制在100字以内。
+- 与前文大纲保持剧情连贯性。
+- 在第 %d 章前不要出现结局章节。
+- 情节设计需符合小说类型的风格和情感基调。
+
+仅给出最终文本，不要解释任何内容。`,
+		userGuidance, novelArchitecture, params.ChapterCount,
+		previousContext, startChapter, endChapter, params.ChapterCount)
+}
+
 // GenerateMockBlueprint 生成模拟章节大纲
 func GenerateMockBlueprint(params BlueprintPromptParams) string {
 	var blueprint strings.Builder

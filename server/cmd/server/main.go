@@ -80,18 +80,31 @@ func main() {
 	// 注册默认适配器
 	llmManager.Register("openai", llm.NewOpenAIAdapter("", "gpt-3.5-turbo"))
 
+	// 初始化仓储 - 对话
+	chatRepo := repository.NewChatRepository(db)
+
 	// 初始化服务
 	deviceService := service.NewDeviceService(deviceRepo)
 	exportService := service.NewExportService(projectRepo, chapterRepo)
 	projectService := service.NewProjectService(projectRepo, chapterRepo, modelConfigRepo, llmManager, exportService)
 	chapterService := service.NewChapterService(projectRepo, chapterRepo, modelConfigRepo, llmManager)
 	modelConfigService := service.NewModelConfigService(modelConfigRepo, llmManager)
+	chatService := service.NewChatService(chatRepo, projectRepo, modelConfigRepo, llmManager)
+	writingAssistantService := service.NewWritingAssistantService(projectRepo, chapterRepo, modelConfigRepo, llmManager)
+	graphService := service.NewGraphService(projectRepo, chapterRepo, modelConfigRepo, llmManager)
+	reviewService := service.NewReviewService(projectRepo, chapterRepo, modelConfigRepo, llmManager)
+	backupService := service.NewBackupService(db, projectRepo, chapterRepo, chatRepo)
 
 	// 初始化处理器
 	deviceHandler := handler.NewDeviceHandler(deviceService)
 	projectHandler := handler.NewProjectHandler(projectService)
 	chapterHandler := handler.NewChapterHandler(chapterService, projectService)
 	modelConfigHandler := handler.NewModelConfigHandler(modelConfigService)
+	chatHandler := handler.NewChatHandler(chatService)
+	writingAssistantHandler := handler.NewWritingAssistantHandler(writingAssistantService)
+	graphHandler := handler.NewGraphHandler(graphService)
+	reviewHandler := handler.NewReviewHandler(reviewService)
+	backupHandler := handler.NewBackupHandler(backupService)
 
 	// 设置 Gin
 	if cfg.Server.Mode == "release" {
@@ -101,7 +114,7 @@ func main() {
 	r := gin.New()
 
 	// 设置路由
-	router.SetupRouter(r, deviceRepo, deviceHandler, projectHandler, chapterHandler, modelConfigHandler)
+	router.SetupRouter(r, deviceRepo, deviceHandler, projectHandler, chapterHandler, modelConfigHandler, chatHandler, writingAssistantHandler, graphHandler, reviewHandler, backupHandler)
 
 	// 启动服务器
 	srv := &http.Server{
@@ -154,6 +167,8 @@ func autoMigrate(db *gorm.DB) error {
 		&model.Chapter{},
 		&model.ModelProvider{},
 		&model.ModelConfig{},
+		&model.Conversation{},
+		&model.Message{},
 	)
 
 	if err != nil {

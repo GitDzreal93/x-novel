@@ -1,14 +1,13 @@
 import axios from 'axios';
+import type { AxiosRequestConfig } from 'axios';
 
-const request = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+const instance = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || '',
   timeout: 60000,
 });
 
-// 请求拦截器
-request.interceptors.request.use(
+instance.interceptors.request.use(
   (config) => {
-    // 添加设备 ID
     let deviceId = localStorage.getItem('x-novel-device-id');
     if (!deviceId) {
       deviceId = generateDeviceId();
@@ -22,17 +21,12 @@ request.interceptors.request.use(
   }
 );
 
-// 响应拦截器
-request.interceptors.response.use(
+instance.interceptors.response.use(
   (response) => {
-    const res = response.data;
-
-    // 如果响应中有设备 ID，保存到本地
     if (response.headers['x-device-id']) {
       localStorage.setItem('x-novel-device-id', response.headers['x-device-id']);
     }
-
-    return res;
+    return response.data;
   },
   (error) => {
     console.error('API Error:', error);
@@ -40,9 +34,26 @@ request.interceptors.response.use(
   }
 );
 
-// 生成设备 ID
 function generateDeviceId(): string {
   return 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
+
+/**
+ * 封装 axios 实例，使返回类型与拦截器一致（拦截器返回 response.data）。
+ */
+const request = {
+  get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    return instance.get(url, config) as unknown as Promise<T>;
+  },
+  post<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
+    return instance.post(url, data, config) as unknown as Promise<T>;
+  },
+  put<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
+    return instance.put(url, data, config) as unknown as Promise<T>;
+  },
+  delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    return instance.delete(url, config) as unknown as Promise<T>;
+  },
+};
 
 export default request;

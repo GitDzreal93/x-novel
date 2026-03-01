@@ -42,13 +42,6 @@ export const useAppStore = create<AppState>()(
         const currentTheme = get().theme;
         const newTheme = currentTheme === 'light' ? 'dark' : 'light';
         set({ theme: newTheme });
-
-        // 应用主题到 document
-        if (newTheme === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
       },
 
       // 当前项目

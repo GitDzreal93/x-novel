@@ -187,3 +187,175 @@ export interface ValidateModelConfigRequest {
   api_key: string;
   base_url?: string;
 }
+
+// 关系图谱相关类型
+export interface GraphNode {
+  id: string;
+  name: string;
+  type: 'protagonist' | 'antagonist' | 'supporting' | 'minor';
+  description: string;
+  traits: string[];
+  group: string;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  relation: string;
+  description: string;
+  weight: number;
+}
+
+export interface GraphSnapshot {
+  chapter_number: number;
+  summary: string;
+  nodes_count: number;
+  edges_count: number;
+}
+
+export interface GraphData {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  snapshots?: GraphSnapshot[];
+}
+
+// 写作助手相关类型
+export type WritingAction = 'polish' | 'continue' | 'suggestion';
+export type PolishStyle = 'vivid' | 'concise' | 'literary' | 'dramatic';
+export type SuggestionAspect = 'plot' | 'character' | 'dialogue' | 'description' | 'conflict';
+
+export interface WritingAssistantRequest {
+  action: WritingAction;
+  content: string;
+  project_id?: string;
+  style?: PolishStyle;
+  target_words?: number;
+  aspect?: SuggestionAspect;
+  stream?: boolean;
+}
+
+// 错误检测相关类型
+export type DetectionType = 'typo' | 'grammar' | 'logic' | 'repetition';
+export type IssueSeverity = 'error' | 'warning' | 'info';
+
+export interface DetectionIssue {
+  type: DetectionType;
+  severity: IssueSeverity;
+  position: string;
+  original: string;
+  suggestion: string;
+  explanation: string;
+}
+
+export interface DetectionResult {
+  issues: DetectionIssue[];
+  summary: string;
+  total_count: number;
+  type_counts: Record<string, number>;
+}
+
+// AI 审阅相关类型
+export type ReviewDimension = 'plot' | 'character' | 'writing' | 'pacing' | 'creativity' | 'readability';
+
+export interface ReviewScore {
+  dimension: ReviewDimension;
+  score: number;
+  comment: string;
+}
+
+export interface ReviewResult {
+  scores: ReviewScore[];
+  overall_score: number;
+  highlights: string[];
+  issues: string[];
+  suggestions: string[];
+  summary: string;
+}
+
+// 市场预测相关类型
+export interface MarketTrendItem {
+  trend: string;
+  fit: number;
+  analysis: string;
+}
+
+export interface ReaderAppealItem {
+  dimension: string;
+  score: number;
+  comment: string;
+}
+
+export interface MonetizationAdvice {
+  platforms: string[];
+  pricing_model: string;
+  ip_potential: number;
+  suggestion: string;
+}
+
+export interface MarketPrediction {
+  market_score: number;
+  target_audience: string;
+  competitive_edge: string;
+  market_trends: MarketTrendItem[];
+  reader_appeal: ReaderAppealItem[];
+  monetization: MonetizationAdvice;
+  risks: string[];
+  recommendations: string[];
+  summary: string;
+}
+
+// 数据备份相关类型
+export interface BackupPreview {
+  projects: number;
+  chapters: number;
+  total_words: number;
+  conversations: number;
+  messages: number;
+}
+
+export interface ImportResult {
+  imported_projects: number;
+  imported_chapters: number;
+  imported_conversations: number;
+  imported_messages: number;
+  failed_projects: number;
+  failed_chapters: number;
+  failed_conversations: number;
+  failed_messages: number;
+}
+
+// 对话相关类型
+export type ChatMode = 'creative' | 'building' | 'character' | 'general';
+
+export interface Conversation {
+  id: string;
+  title: string;
+  mode: ChatMode;
+  project_id?: string;
+  messages?: ChatMessage[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string;
+}
+
+export interface CreateConversationRequest {
+  title?: string;
+  mode?: ChatMode;
+  project_id?: string;
+}
+
+export interface SendMessageRequest {
+  content: string;
+  stream?: boolean;
+}
+
+export interface SendMessageResponse {
+  user_message: ChatMessage;
+  assistant_message: ChatMessage;
+}

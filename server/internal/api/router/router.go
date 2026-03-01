@@ -16,6 +16,11 @@ func SetupRouter(
 	projectHandler *handler.ProjectHandler,
 	chapterHandler *handler.ChapterHandler,
 	modelConfigHandler *handler.ModelConfigHandler,
+	chatHandler *handler.ChatHandler,
+	writingAssistantHandler *handler.WritingAssistantHandler,
+	graphHandler *handler.GraphHandler,
+	reviewHandler *handler.ReviewHandler,
+	backupHandler *handler.BackupHandler,
 ) {
 	// 全局中间件
 	r.Use(middleware.CORS())
@@ -79,6 +84,40 @@ func SetupRouter(
 
 			// 导出
 			projects.GET("/:id/export/:format", projectHandler.ExportProject)
+
+			// 关系图谱
+			projects.GET("/:id/graph", graphHandler.GetGraph)
+			projects.POST("/:id/graph/generate", graphHandler.GenerateGraph)
+			projects.POST("/:id/graph/chapters/:chapterNumber", graphHandler.UpdateFromChapter)
+			projects.GET("/:id/graph/chapters/:chapterNumber", graphHandler.GetChapterSnapshot)
+		}
+
+		// 写作助手
+		v1.POST("/writing/assist", writingAssistantHandler.Assist)
+
+		// 错误检测 & AI 审阅 & 市场预测
+		v1.POST("/review/detect", reviewHandler.DetectErrors)
+		v1.POST("/projects/:id/review", reviewHandler.ReviewProject)
+		v1.POST("/projects/:id/review/chapters/:chapterNumber", reviewHandler.ReviewChapter)
+		v1.POST("/projects/:id/market-predict", reviewHandler.MarketPredict)
+
+		// 数据备份
+		backup := v1.Group("/backup")
+		{
+			backup.GET("/preview", backupHandler.ExportPreview)
+			backup.GET("/export", backupHandler.Export)
+			backup.POST("/import", backupHandler.Import)
+		}
+
+		// 对话
+		chat := v1.Group("/conversations")
+		{
+			chat.GET("", chatHandler.ListConversations)
+			chat.POST("", chatHandler.CreateConversation)
+			chat.GET("/:id", chatHandler.GetConversation)
+			chat.PUT("/:id", chatHandler.UpdateConversation)
+			chat.DELETE("/:id", chatHandler.DeleteConversation)
+			chat.POST("/:id/messages", chatHandler.SendMessage)
 		}
 	}
 }

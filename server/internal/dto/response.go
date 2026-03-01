@@ -184,6 +184,75 @@ type ExportResponse struct {
 	ChapterCount int  `json:"chapter_count"`
 }
 
+// ========== 对话响应 ==========
+
+// ConversationResponse 对话响应
+type ConversationResponse struct {
+	ID        uuid.UUID         `json:"id"`
+	Title     string            `json:"title"`
+	Mode      string            `json:"mode"`
+	ProjectID *uuid.UUID        `json:"project_id,omitempty"`
+	Messages  []MessageResponse `json:"messages,omitempty"`
+	CreatedAt time.Time         `json:"created_at"`
+	UpdatedAt time.Time         `json:"updated_at"`
+}
+
+// ConversationListResponse 对话列表响应
+type ConversationListResponse struct {
+	Conversations []ConversationResponse `json:"conversations"`
+	Total         int64                  `json:"total"`
+}
+
+// MessageResponse 消息响应
+type MessageResponse struct {
+	ID        uuid.UUID `json:"id"`
+	Role      string    `json:"role"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// SendMessageResponse 发送消息响应
+type SendMessageResponse struct {
+	UserMessage      MessageResponse `json:"user_message"`
+	AssistantMessage MessageResponse `json:"assistant_message"`
+}
+
+// ConversationFromModel 从模型转换为对话响应
+func ConversationFromModel(c *model.Conversation) *ConversationResponse {
+	resp := &ConversationResponse{
+		ID:        c.ID,
+		Title:     c.Title,
+		Mode:      c.Mode,
+		ProjectID: c.ProjectID,
+		CreatedAt: c.CreatedAt,
+		UpdatedAt: c.UpdatedAt,
+	}
+
+	if len(c.Messages) > 0 {
+		resp.Messages = make([]MessageResponse, len(c.Messages))
+		for i, m := range c.Messages {
+			resp.Messages[i] = MessageResponse{
+				ID:        m.ID,
+				Role:      m.Role,
+				Content:   m.Content,
+				CreatedAt: m.CreatedAt,
+			}
+		}
+	}
+
+	return resp
+}
+
+// MessageFromModel 从模型转换为消息响应
+func MessageFromModel(m *model.Message) *MessageResponse {
+	return &MessageResponse{
+		ID:        m.ID,
+		Role:      m.Role,
+		Content:   m.Content,
+		CreatedAt: m.CreatedAt,
+	}
+}
+
 // ========== 辅助函数 ==========
 
 // FromModel 从模型转换为响应

@@ -14,6 +14,16 @@ import type {
   CreateModelConfigRequest,
   UpdateModelConfigRequest,
   ValidateModelConfigRequest,
+  Conversation,
+  CreateConversationRequest,
+  SendMessageResponse,
+  WritingAssistantRequest,
+  GraphData,
+  DetectionResult,
+  ReviewResult,
+  MarketPrediction,
+  BackupPreview,
+  ImportResult,
 } from '../types';
 
 // ========== 设备相关 API ==========
@@ -196,5 +206,123 @@ export const modelConfigApi = {
   // 验证模型配置
   validate: (data: ValidateModelConfigRequest) => {
     return request.post<Response<void>>('/api/v1/models/validate', data);
+  },
+};
+
+// ========== 关系图谱 API ==========
+
+export const graphApi = {
+  // 获取项目图谱
+  get: (projectId: string) => {
+    return request.get<Response<GraphData>>(`/api/v1/projects/${projectId}/graph`);
+  },
+
+  // 生成图谱（从架构提取）
+  generate: (projectId: string) => {
+    return request.post<Response<GraphData>>(`/api/v1/projects/${projectId}/graph/generate`);
+  },
+
+  // 从章节更新图谱
+  updateFromChapter: (projectId: string, chapterNumber: number) => {
+    return request.post<Response<GraphData>>(`/api/v1/projects/${projectId}/graph/chapters/${chapterNumber}`);
+  },
+
+  // 获取章节快照
+  getChapterSnapshot: (projectId: string, chapterNumber: number) => {
+    return request.get<Response<GraphData>>(`/api/v1/projects/${projectId}/graph/chapters/${chapterNumber}`);
+  },
+};
+
+// ========== 数据备份 API ==========
+
+export const backupApi = {
+  preview: () => {
+    return request.get<Response<BackupPreview>>('/api/v1/backup/preview');
+  },
+
+  exportData: () => {
+    return request.get<Blob>('/api/v1/backup/export', { responseType: 'blob' });
+  },
+
+  importData: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request.post<Response<ImportResult>>('/api/v1/backup/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+};
+
+// ========== 错误检测 & AI 审阅 API ==========
+
+export const reviewApi = {
+  detect: (data: { content: string; types?: string[] }) => {
+    return request.post<Response<DetectionResult>>('/api/v1/review/detect', data);
+  },
+
+  reviewChapter: (projectId: string, chapterNumber: number) => {
+    return request.post<Response<ReviewResult>>(
+      `/api/v1/projects/${projectId}/review/chapters/${chapterNumber}`
+    );
+  },
+
+  reviewProject: (projectId: string) => {
+    return request.post<Response<ReviewResult>>(
+      `/api/v1/projects/${projectId}/review`
+    );
+  },
+
+  marketPredict: (projectId: string) => {
+    return request.post<Response<MarketPrediction>>(
+      `/api/v1/projects/${projectId}/market-predict`
+    );
+  },
+};
+
+// ========== 写作助手 API ==========
+
+export const writingApi = {
+  assist: (data: WritingAssistantRequest) => {
+    return request.post<Response<{ result: string }>>('/api/v1/writing/assist', data);
+  },
+};
+
+// ========== 对话相关 API ==========
+
+export const chatApi = {
+  // 创建对话
+  create: (data: CreateConversationRequest) => {
+    return request.post<Response<Conversation>>('/api/v1/conversations', data);
+  },
+
+  // 获取对话列表
+  list: (params?: { page?: number; page_size?: number }) => {
+    return request.get<Response<{ conversations: Conversation[]; total: number }>>(
+      '/api/v1/conversations',
+      { params }
+    );
+  },
+
+  // 获取对话详情（含消息）
+  getById: (id: string) => {
+    return request.get<Response<Conversation>>(`/api/v1/conversations/${id}`);
+  },
+
+  // 更新对话标题
+  update: (id: string, data: { title: string }) => {
+    return request.put<Response<void>>(`/api/v1/conversations/${id}`, data);
+  },
+
+  // 删除对话
+  delete: (id: string) => {
+    return request.delete<Response<void>>(`/api/v1/conversations/${id}`);
+  },
+
+  // 发送消息（非流式）
+  sendMessage: (conversationId: string, content: string) => {
+    return request.post<Response<SendMessageResponse>>(
+      `/api/v1/conversations/${conversationId}/messages`,
+      { content, stream: false }
+    );
   },
 };
