@@ -1,24 +1,23 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, Avatar, Dropdown, Typography, theme, Flex } from 'antd';
+import { Layout, Menu, Button, Avatar, Dropdown, Typography, theme, Flex, Space } from 'antd';
 import {
   BookOutlined,
   SettingOutlined,
   SunOutlined,
   MoonOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
   UserOutlined,
   MessageOutlined,
+  GithubOutlined,
 } from '@ant-design/icons';
 import { useAppStore } from '../../stores';
 
-const { Sider, Header, Content } = Layout;
+const { Header, Content, Footer } = Layout;
 const { Text } = Typography;
 
 function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme: appTheme, toggleTheme, sidebarCollapsed, toggleSidebar } = useAppStore();
+  const { theme: appTheme, toggleTheme } = useAppStore();
   const { token } = theme.useToken();
 
   const menuItems = [
@@ -47,140 +46,93 @@ function MainLayout() {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider
-        collapsible
-        collapsed={sidebarCollapsed}
-        onCollapse={toggleSidebar}
-        trigger={null}
-        width={220}
-        collapsedWidth={64}
+    <Layout style={{ minHeight: '100vh', background: token.colorBgLayout }}>
+      {/* 顶部导航栏 */}
+      <Header
         style={{
           background: token.colorBgContainer,
-          borderRight: `1px solid ${token.colorBorderSecondary}`,
-          overflow: 'auto',
-          height: '100vh',
-          position: 'fixed',
-          left: 0,
+          borderBottom: `1px solid ${token.colorBorderSecondary}`,
+          padding: 0,
+          height: 56,
+          lineHeight: '56px',
+          position: 'sticky',
           top: 0,
-          bottom: 0,
-          zIndex: 10,
+          zIndex: 100,
+          boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)',
         }}
       >
-        {/* Logo */}
-        <Flex
-          align="center"
-          justify={sidebarCollapsed ? 'center' : 'flex-start'}
-          gap={10}
+        <div
           style={{
-            height: 64,
-            padding: sidebarCollapsed ? '0' : '0 20px',
-            borderBottom: `1px solid ${token.colorBorderSecondary}`,
-          }}
-        >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 10,
-              background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: 14,
-              flexShrink: 0,
-            }}
-          >
-            X
-          </div>
-          {!sidebarCollapsed && (
-            <Text
-              strong
-              style={{
-                fontSize: 17,
-                background: 'linear-gradient(90deg, #4f46e5, #7c3aed)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                whiteSpace: 'nowrap',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              X-Novel
-            </Text>
-          )}
-        </Flex>
-
-        {/* Menu */}
-        <Menu
-          mode="inline"
-          selectedKeys={[getSelectedKey()]}
-          items={menuItems}
-          onClick={({ key }) => navigate(key)}
-          style={{
-            border: 'none',
-            padding: '8px',
-          }}
-        />
-
-        {/* 底部版本 */}
-        {!sidebarCollapsed && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              padding: '12px 16px',
-              borderTop: `1px solid ${token.colorBorderSecondary}`,
-              textAlign: 'center',
-            }}
-          >
-            <Text type="secondary" style={{ fontSize: 11 }}>
-              X-Novel v0.1.0
-            </Text>
-          </div>
-        )}
-      </Sider>
-
-      <Layout
-        style={{
-          marginLeft: sidebarCollapsed ? 64 : 220,
-          transition: 'margin-left 0.2s',
-        }}
-      >
-        {/* Header */}
-        <Header
-          style={{
-            background: token.colorBgContainer,
-            borderBottom: `1px solid ${token.colorBorderSecondary}`,
-            padding: '0 24px',
-            height: 64,
-            lineHeight: '64px',
+            maxWidth: 1200,
+            margin: '0 auto',
+            padding: '0 32px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            position: 'sticky',
-            top: 0,
-            zIndex: 9,
+            height: '100%',
           }}
         >
-          <Flex align="center" gap={12}>
-            <Button
-              type="text"
-              icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={toggleSidebar}
-              style={{ fontSize: 16 }}
+          {/* 左：Logo + 导航 */}
+          <Flex align="center" gap={32}>
+            <Flex
+              align="center"
+              gap={10}
+              style={{ cursor: 'pointer', flexShrink: 0 }}
+              onClick={() => navigate('/projects')}
+            >
+              <div
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 8,
+                  background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: 13,
+                }}
+              >
+                X
+              </div>
+              <Text
+                strong
+                style={{
+                  fontSize: 16,
+                  background: 'linear-gradient(90deg, #4f46e5, #7c3aed)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                X-Novel
+              </Text>
+            </Flex>
+
+            <Menu
+              mode="horizontal"
+              selectedKeys={[getSelectedKey()]}
+              items={menuItems}
+              onClick={({ key }) => navigate(key)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                lineHeight: '54px',
+                fontSize: 14,
+              }}
             />
           </Flex>
 
-          <Flex align="center" gap={8}>
+          {/* 右：操作区 */}
+          <Flex align="center" gap={4}>
             <Button
               type="text"
+              size="small"
               icon={appTheme === 'light' ? <MoonOutlined /> : <SunOutlined />}
               onClick={toggleTheme}
               title={appTheme === 'light' ? '切换暗色模式' : '切换亮色模式'}
+              style={{ color: token.colorTextSecondary }}
             />
 
             <Dropdown
@@ -198,36 +150,65 @@ function MainLayout() {
                 gap={8}
                 style={{
                   cursor: 'pointer',
-                  padding: '4px 10px',
+                  padding: '4px 12px',
                   borderRadius: token.borderRadius,
+                  transition: 'background 0.2s',
                 }}
               >
                 <Avatar
-                  size={30}
+                  size={28}
                   icon={<UserOutlined />}
                   style={{
                     background: 'linear-gradient(135deg, #818cf8, #a855f7)',
                   }}
                 />
-                <Text style={{ fontSize: 14, fontWeight: 500 }}>Admin</Text>
+                <Text style={{ fontSize: 13, fontWeight: 500 }}>Admin</Text>
               </Flex>
             </Dropdown>
           </Flex>
-        </Header>
+        </div>
+      </Header>
 
-        {/* Content */}
-        <Content
+      {/* 内容区 */}
+      <Content style={{ flex: 1 }}>
+        <div
           style={{
-            padding: 24,
-            minHeight: 'calc(100vh - 64px)',
-            overflow: 'auto',
+            maxWidth: 1200,
+            margin: '0 auto',
+            padding: '28px 32px',
+            minHeight: 'calc(100vh - 56px - 64px)',
           }}
         >
-          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-            <Outlet />
-          </div>
-        </Content>
-      </Layout>
+          <Outlet />
+        </div>
+      </Content>
+
+      {/* 页脚 */}
+      <Footer
+        style={{
+          textAlign: 'center',
+          padding: '16px 32px',
+          background: 'transparent',
+        }}
+      >
+        <Space split={<span style={{ color: token.colorBorderSecondary }}>·</span>}>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            X-Novel v0.1.0
+          </Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            AI 驱动的小说创作平台
+          </Text>
+          <a
+            href="https://github.com"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: token.colorTextQuaternary, fontSize: 12 }}
+          >
+            <GithubOutlined style={{ marginRight: 4 }} />
+            GitHub
+          </a>
+        </Space>
+      </Footer>
     </Layout>
   );
 }

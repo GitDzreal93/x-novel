@@ -10,6 +10,18 @@ body {
     'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: #f7f8fa;
+}
+
+/* antd 水平菜单项间距优化 */
+.ant-menu-horizontal {
+  border-bottom: none !important;
+}
+.ant-menu-horizontal > .ant-menu-item {
+  padding-inline: 16px !important;
+}
+.ant-menu-horizontal > .ant-menu-item::after {
+  inset-inline: 16px !important;
 }
 
 #root {
