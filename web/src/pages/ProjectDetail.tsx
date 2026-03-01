@@ -28,6 +28,17 @@ function ProjectDetail() {
 
   const project = projectRes;
 
+  // Debug: Check if project data and updated_at
+  if (project) {
+    console.log('ProjectDetail render:', {
+      id: project.id,
+      updated_at: project.updated_at,
+      architecture_generated: project.architecture_generated,
+      has_core_seed: !!project.core_seed,
+      core_seed_length: project.core_seed?.length || 0,
+    });
+  }
+
   // 导出处理
   const handleExport = async (format: 'txt' | 'md') => {
     try {
