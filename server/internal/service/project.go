@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"x-novel/internal/dto"
 	"x-novel/internal/llm"
@@ -290,6 +291,9 @@ func (s *ProjectService) GenerateArchitecture(ctx context.Context, deviceID uuid
 	// 标记架构已生成
 	project.ArchitectureGenerated = true
 
+	// 手动更新 UpdatedAt 以确保前端能检测到变化
+	project.UpdatedAt = time.Now()
+
 	// 保存更新
 	if err := s.projectRepo.Update(ctx, project); err != nil {
 		logger.Error("保存架构数据失败", zap.Error(err))
@@ -450,6 +454,9 @@ func (s *ProjectService) generateMockArchitecture(ctx context.Context, project *
 	// 标记架构已生成
 	project.ArchitectureGenerated = true
 
+	// 手动更新 UpdatedAt 以确保前端能检测到变化
+	project.UpdatedAt = time.Now()
+
 	// 保存更新
 	if err := s.projectRepo.Update(ctx, project); err != nil {
 		logger.Error("保存模拟架构数据失败", zap.Error(err))
@@ -514,6 +521,9 @@ func (s *ProjectService) generateMockBlueprint(ctx context.Context, project *mod
 	// 生成模拟大纲
 	project.ChapterBlueprint = GenerateMockBlueprint(params)
 	project.BlueprintGenerated = true
+
+	// 手动更新 UpdatedAt 以确保前端能检测到变化
+	project.UpdatedAt = time.Now()
 
 	// 保存更新
 	if err := s.projectRepo.Update(ctx, project); err != nil {
